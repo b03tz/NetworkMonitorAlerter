@@ -47,7 +47,8 @@ namespace NetworkMonitorAlerter.WindowsApp
             this.textBoxInfo.Name = "textBoxInfo";
             this.textBoxInfo.ReadOnly = true;
             this.textBoxInfo.Size = new System.Drawing.Size(603, 32);
-            this.textBoxInfo.TabIndex = 0;
+            this.textBoxInfo.TabIndex = 10;
+            this.textBoxInfo.TabStop = false;
             this.textBoxInfo.Text = resources.GetString("textBoxInfo.Text");
             // 
             // buttonWhitelistHour
@@ -95,7 +96,7 @@ namespace NetworkMonitorAlerter.WindowsApp
             this.buttonClose.Location = new System.Drawing.Point(420, 50);
             this.buttonClose.Name = "buttonClose";
             this.buttonClose.Size = new System.Drawing.Size(195, 81);
-            this.buttonClose.TabIndex = 4;
+            this.buttonClose.TabIndex = 0;
             this.buttonClose.Text = "Close";
             this.buttonClose.UseVisualStyleBackColor = false;
             this.buttonClose.Click += new System.EventHandler(this.buttonClose_Click);

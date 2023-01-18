@@ -9,7 +9,7 @@ namespace NetworkMonitorAlerter.WindowsApp
         private MainAppForm _mainAppForm;
         private MainAppForm.DownloadOrUpload _downloadOrUpload;
         private Process _process;
-        
+
         public AlertForm(MainAppForm mainAppForm, MainAppForm.DownloadOrUpload downloadOrUpload, Process process)
         {
             _mainAppForm = mainAppForm;
@@ -17,14 +17,14 @@ namespace NetworkMonitorAlerter.WindowsApp
             _process = process;
 
             InitializeComponent();
-
+            
             switch (downloadOrUpload)
             {
                 case MainAppForm.DownloadOrUpload.Download:
-                    textBoxInfo.Text = $"The process {process.ProcessName} has downloaded more than {_mainAppForm.Configuration.MaxMbDownloadInWindow} MB of data in the last {_mainAppForm.Configuration.RollingWindowSeconds} seconds.";
+                    textBoxInfo.Text = $"The process '{mainAppForm.GetProcessTitle(process)}' has downloaded more than {_mainAppForm.Configuration.MaxMbDownloadInWindow} MB of data in the last {_mainAppForm.Configuration.RollingWindowSeconds} seconds.";
                     break;
                 case MainAppForm.DownloadOrUpload.Upload:
-                    textBoxInfo.Text = $"The process {process.ProcessName} has uploaded more than {_mainAppForm.Configuration.MaxMbUploadInWindow} MB of data in the last {_mainAppForm.Configuration.RollingWindowSeconds} seconds.";
+                    textBoxInfo.Text = $"The process '{mainAppForm.GetProcessTitle(process)}' has uploaded more than {_mainAppForm.Configuration.MaxMbUploadInWindow} MB of data in the last {_mainAppForm.Configuration.RollingWindowSeconds} seconds.";
                     break;
             }
         }

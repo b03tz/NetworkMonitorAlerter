@@ -163,6 +163,7 @@
             this.Controls.Add(this.textBoxConsole);
             this.Name = "MainAppForm";
             this.Text = "Network Monitor";
+            this.SizeChanged += new System.EventHandler(this.MainAppForm_SizeChanged);
             ((System.ComponentModel.ISupportInitialize) (this.timerData)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();

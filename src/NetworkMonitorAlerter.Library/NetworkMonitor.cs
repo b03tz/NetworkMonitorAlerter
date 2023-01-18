@@ -166,11 +166,11 @@ namespace NetworkMonitorAlerter.Library
             {
                 foreach (var counter in _processCounters.Values)
                 {
-                    _monitors[counter.Process.Id].BytesReceived = counter.Received;
-                    _monitors[counter.Process.Id].BytesSent = counter.Sent;
-                    
                     var receivedDiff = counter.Received - _monitors[counter.Process.Id].BytesReceived;
                     var sentDiff = counter.Sent - _monitors[counter.Process.Id].BytesSent;
+                    
+                    _monitors[counter.Process.Id].BytesReceived = counter.Received;
+                    _monitors[counter.Process.Id].BytesSent = counter.Sent;
                     _monitors[counter.Process.Id].BandwidthReceived = receivedDiff;
                     _monitors[counter.Process.Id].BandwidthSent = sentDiff;
                 }

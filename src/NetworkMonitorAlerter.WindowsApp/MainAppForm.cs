@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,7 @@ namespace NetworkMonitorAlerter.WindowsApp
         private string _configFile = "configuration.json";
         public Configuration Configuration;
         private NetworkMonitor _networkMonitor;
+        private List<string> _openForms = new List<string>();
 
         public MainAppForm()
         {
@@ -47,7 +49,7 @@ namespace NetworkMonitorAlerter.WindowsApp
 
             if (Configuration.MonitorEveryXSeconds == 0)
                 Configuration.MonitorEveryXSeconds = 5;
-            
+
             textBoxConfigRollingWindowSeconds.Text = Configuration.RollingWindowSeconds.ToString();
             textBoxMaxMbDownloadInWindow.Text = Configuration.MaxMbDownloadInWindow.ToString();
             textBoxMaxMbUploadInWindow.Text = Configuration.MaxMbUploadInWindow.ToString();
@@ -64,25 +66,44 @@ namespace NetworkMonitorAlerter.WindowsApp
             textBoxConsole.Text = "";
             var performanceData = _networkMonitor.GetNetworkPerformanceData();
             performanceData = performanceData.OrderBy(x => x.Process.ProcessName).ToList();
-            
+
             labelMonitoringValue.Text = performanceData.Count + " processes";
             foreach (var data in performanceData)
             {
                 if (data.BytesReceived > 0)
-                    Logger.Log($"D: {Logger.ToFixedString(data.BytesReceived.ToString(), 10)}      U: {Logger.ToFixedString(data.BytesSent.ToString(), 10)} - {data.Process.ProcessName}");
+                    Logger.Log(
+                        $"D: {Logger.ToFixedString(data.BandwidthReceived.ToString(), 10)}      U: {Logger.ToFixedString(data.BandwidthSent.ToString(), 10)} - {data.Process.ProcessName}");
 
+                var uploadFormName = data.Process.ProcessName.ToLower() + "_u";
+                var downloadFormName = data.Process.ProcessName.ToLower() + "_d";
                 if (data.BandwidthSent > Configuration.MaxBytesUploadInWindow &&
-                    !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Upload))
+                    !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Upload) &&
+                    !_openForms.Contains(uploadFormName))
                 {
-                    new AlertForm(this, DownloadOrUpload.Upload, data.Process).Show();
+                    _openForms.Add(uploadFormName);
+                    var k = new AlertForm(this, DownloadOrUpload.Upload, data.Process);
+                    k.Closed += (_, _) => { _openForms.Remove(uploadFormName); };
+                    k.WindowState = FormWindowState.Minimized;
+                    k.Show();
+                    k.WindowState = FormWindowState.Normal;
+                    k.Activate();
                 }
 
                 if (data.BandwidthReceived > Configuration.MaxBytesDownloadInWindow &&
-                    !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Download))
-                    new AlertForm(this, DownloadOrUpload.Download, data.Process).Show();
+                    !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Download) &&
+                    !_openForms.Contains(downloadFormName))
+                {
+                    _openForms.Add(downloadFormName);
+                    var k = new AlertForm(this, DownloadOrUpload.Download, data.Process);
+                    k.Closed += (_, _) => { _openForms.Remove(downloadFormName); };
+                    k.WindowState = FormWindowState.Minimized;
+                    k.Show();
+                    k.WindowState = FormWindowState.Normal;
+                    k.Activate();
+                }
             }
         }
-        
+
         private void buttonSaveConfiguration_Click(object sender, EventArgs e)
         {
             Configuration.RollingWindowSeconds = int.Parse(textBoxConfigRollingWindowSeconds.Text);
@@ -90,18 +111,18 @@ namespace NetworkMonitorAlerter.WindowsApp
             Configuration.MaxMbUploadInWindow = int.Parse(textBoxMaxMbUploadInWindow.Text);
             WriteConfiguration();
         }
-        
-                public void WhitelistApplication(Process process, DateTimeOffset until, DownloadOrUpload type)
+
+        public void WhitelistApplication(Process process, DateTimeOffset until, DownloadOrUpload type)
         {
             var configurationApplication =
                 Configuration.Applications.FirstOrDefault(x =>
-                    x.ProcessName == process.ProcessName.ToLower());
+                    x.ProcessName.ToLower() == process.ProcessName.ToLower());
 
             if (configurationApplication == null)
                 configurationApplication = new NetworkApplication
                 {
-                    ApplicationName = process.ProcessName,
-                    ProcessName = process.ProcessName,
+                    ApplicationName = GetProcessTitle(process),
+                    ProcessName = process.ProcessName.ToLower(),
                     DownloadWhitelistedUntil = DateTimeOffset.Now,
                     UploadWhitelistedUntil = DateTimeOffset.Now
                 };
@@ -124,7 +145,7 @@ namespace NetworkMonitorAlerter.WindowsApp
 
         private void WriteConfiguration()
         {
-            File.WriteAllText(_configFile, JsonConvert.SerializeObject(Configuration));
+            File.WriteAllText(_configFile, JsonConvert.SerializeObject(Configuration, Formatting.Indented));
         }
 
         private bool IsApplicationWhitelisted(Process process, DownloadOrUpload type)
@@ -151,6 +172,16 @@ namespace NetworkMonitorAlerter.WindowsApp
         {
             Download,
             Upload
+        }
+
+        public string GetProcessTitle(Process process)
+        {
+            return process.ProcessName;
+        }
+
+        private void MainAppForm_SizeChanged(object sender, EventArgs e)
+        {
+            textBoxConsole.Height = this.Height - 205;
         }
     }
 }
