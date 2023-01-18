@@ -14,6 +14,7 @@
         <Deterministic>true</Deterministic>
         <LangVersion>9</LangVersion>
         <Nullable>enable</Nullable>
+        <ApplicationManifest>app.manifest</ApplicationManifest>
     </PropertyGroup>
     <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
         <PlatformTarget>AnyCPU</PlatformTarget>
@@ -36,7 +37,7 @@
     </PropertyGroup>
     <ItemGroup>
         <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-          <HintPath>..\..\NetworkMonitorAlerter\packages\Newtonsoft.Json.13.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
+          <HintPath>..\..\packages\Newtonsoft.Json.13.0.2\lib\net45\Newtonsoft.Json.dll</HintPath>
         </Reference>
         <Reference Include="System" />
         <Reference Include="System.Core" />
@@ -51,6 +52,12 @@
         <Reference Include="System.Xml" />
     </ItemGroup>
     <ItemGroup>
+        <Compile Include="AlertForm.cs">
+          <SubType>Form</SubType>
+        </Compile>
+        <Compile Include="AlertForm.Designer.cs">
+          <DependentUpon>AlertForm.cs</DependentUpon>
+        </Compile>
         <Compile Include="MainAppForm.cs">
             <SubType>Form</SubType>
         </Compile>
@@ -59,6 +66,9 @@
         </Compile>
         <Compile Include="Program.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
+        <EmbeddedResource Include="AlertForm.resx">
+          <DependentUpon>AlertForm.cs</DependentUpon>
+        </EmbeddedResource>
         <EmbeddedResource Include="MainAppForm.resx">
           <DependentUpon>MainAppForm.cs</DependentUpon>
         </EmbeddedResource>
@@ -86,12 +96,13 @@
         <None Include="App.config" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\..\NetworkMonitorAlerter\src\NetworkMonitorAlerter.Library\NetworkMonitorAlerter.Library.csproj">
+      <ProjectReference Include="..\NetworkMonitorAlerter.Library\NetworkMonitorAlerter.Library.csproj">
         <Project>{aba99183-2c32-4699-954c-9c62edc4cdf8}</Project>
         <Name>NetworkMonitorAlerter.Library</Name>
       </ProjectReference>
     </ItemGroup>
     <ItemGroup>
+      <Content Include="app.manifest" />
       <Content Include="configuration.json">
         <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       </Content>

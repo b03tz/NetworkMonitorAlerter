@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Tracing.Parsers;
 using Microsoft.Diagnostics.Tracing.Session;
@@ -11,11 +10,18 @@ namespace NetworkMonitorAlerter.Library
 {
     public class NetworkMonitor : IDisposable
     {
-        private DateTime m_EtwStartTime;
-        private TraceEventSession m_EtwSession;
+        //private DateTime _mEtwStartTime;
+        private DateTime _lastProcessUpdateTime;
+        private TraceEventSession _mEtwSession;
 
-        private readonly List<Counters> processCounters = new List<Counters>();
-        private readonly Dictionary<int, NetworkPerformanceData> monitors = new Dictionary<int, NetworkPerformanceData>();
+        private readonly Dictionary<int, Counters> _processCounters = new Dictionary<int, Counters>();
+
+        private readonly Dictionary<int, NetworkPerformanceData> _monitors =
+            new Dictionary<int, NetworkPerformanceData>();
+
+        private readonly List<Process> _processes = new List<Process>();
+        private readonly bool _isContinuous;
+        private readonly int _updateProcessInterval;
 
         private class Counters
         {
@@ -24,116 +30,212 @@ namespace NetworkMonitorAlerter.Library
             public long Sent;
         }
 
+        private NetworkMonitor(bool isContinuous, int updateInterval = 30)
+        {
+            _updateProcessInterval = updateInterval;
+            _isContinuous = isContinuous;
+        }
+
         public static NetworkMonitor Create(List<Process> processes)
         {
-            var networkPerformancePresenter = new NetworkMonitor();
-            networkPerformancePresenter.Initialize(processes);
+            var networkPerformancePresenter = new NetworkMonitor(false);
+
+            foreach (var process in processes)
+                networkPerformancePresenter.AddProcess(process);
+
+            networkPerformancePresenter.Initialize();
             return networkPerformancePresenter;
         }
 
-        private void Initialize(List<Process> processes)
+        public static NetworkMonitor CreateContinuousMonitor(int updateInterval = 30)
         {
-            foreach (var process in processes)
+            var networkPerformancePresenter = new NetworkMonitor(true, updateInterval);
+            networkPerformancePresenter.Initialize();
+            return networkPerformancePresenter;
+        }
+
+        public void AddProcess(Process process)
+        {
+            if (process == null)
+                throw new ArgumentNullException(nameof(process));
+
+            lock (_processCounters)
             {
-                processCounters.Add(new Counters()
+                if (_processCounters.ContainsKey(process.Id))
+                    return;
+            }
+
+            lock (_processes)
+            {
+                _processes.Add(process);
+            }
+
+            lock (_processCounters)
+            {
+                _processCounters.Add(process.Id, new Counters
+                {
+                    Process = process,
+                    Received = 0,
+                    Sent = 0
+                });
+            }
+
+            lock (_monitors)
+            {
+                _monitors.Add(process.Id, new NetworkPerformanceData
                 {
                     Process = process
                 });
-
-                monitors[process.Id] = new NetworkPerformanceData
-                {
-                    Process = process
-                };
             }
-
-            // Note that the ETW class blocks processing messages, so should be run on a different thread if you want the application to remain responsive.
-            Task.Run(() => StartEtwSession(processes));
-            //StartEtwSession();
         }
 
-        private void StartEtwSession(List<Process> processes)
+        public void RemoveProcess(int processId)
+        {
+            lock (_processes)
+            {
+                var p = _processes.FirstOrDefault(x => x.Id == processId);
+                if (p != null)
+                    _processes.Remove(p);
+            }
+
+            lock (_processCounters)
+            {
+                _processCounters.Remove(processId);
+            }
+
+            lock (_monitors)
+            {
+                _monitors.Remove(processId);
+            }
+        }
+
+        private void Initialize()
+        {
+            if (_isContinuous)
+                UpdateProcesses();
+            
+            Task.Run(StartEtwSession);
+        }
+
+        private void StartEtwSession()
         {
             try
             {
                 ResetCounters();
 
-                using (m_EtwSession =
-                           new TraceEventSession(nameof(NetworkMonitor), TraceEventSessionOptions.Create))
+                using (_mEtwSession = new TraceEventSession(nameof(NetworkMonitor)))
                 {
-                    m_EtwSession.EnableKernelProvider(KernelTraceEventParser.Keywords.NetworkTCPIP);
-                    m_EtwSession.EnableProvider("Microsoft-Windows-TCPIP");
-                    m_EtwSession.Source.Kernel.TcpIpRecv += data =>
+                    _mEtwSession.EnableKernelProvider(KernelTraceEventParser.Keywords.NetworkTCPIP);
+                    _mEtwSession.EnableProvider("Microsoft-Windows-TCPIP");
+                    _mEtwSession.Source.Kernel.TcpIpRecv += data =>
                     {
-                        var process = processCounters.FirstOrDefault(x => x.Process.Id == data.ProcessID);
-
-                        lock (processCounters)
+                        lock (_processCounters)
                         {
-                            if (process != null)
-                                process.Received += data.size;
+                            if (!_processCounters.ContainsKey(data.ProcessID)) return;
+                            
+                            _processCounters[data.ProcessID].Received += Convert.ToInt64(data.size);
                         }
                     };
 
-                    m_EtwSession.Source.Kernel.TcpIpSend += data =>
+                    _mEtwSession.Source.Kernel.TcpIpSend += data =>
                     {
-                        var process = processCounters.FirstOrDefault(x => x.Process.Id == data.ProcessID);
-
-                        lock (processCounters)
+                        
+                        lock (_processCounters)
                         {
-                            if (process != null)
-                                process.Sent += data.size;
+                            if (!_processCounters.ContainsKey(data.ProcessID)) return;
+                            
+                            _processCounters[data.ProcessID].Sent += Convert.ToInt64(data.size);
                         }
                     };
 
-                    m_EtwSession.Source.Process();
+                    _mEtwSession.Source.Process();
                 }
             }
-            catch (Exception e)
+            catch
             {
                 ResetCounters(); // Stop reporting figures
                 // Probably should log the exception
             }
         }
-
+        
         public List<NetworkPerformanceData> GetNetworkPerformanceData()
         {
-            var timeDifferenceInSeconds = (DateTime.Now - m_EtwStartTime).TotalSeconds;
+            //var timeDifferenceInSeconds = (DateTime.Now - _mEtwStartTime).TotalSeconds;
 
-            lock (processCounters)
+            lock (_processCounters)
             {
-                foreach (var counter in processCounters)
+                foreach (var counter in _processCounters.Values)
                 {
-                    var receivedDiff = counter.Received - monitors[counter.Process.Id].BytesReceived;
-                    var sentDiff = counter.Sent - monitors[counter.Process.Id].BytesSent;
-                    monitors[counter.Process.Id].BytesReceived = counter.Received;
-                    monitors[counter.Process.Id].BytesSent = counter.Sent;
-                    monitors[counter.Process.Id].BandwidthReceived = receivedDiff;
-                    monitors[counter.Process.Id].BandwidthSent = sentDiff;
+                    _monitors[counter.Process.Id].BytesReceived = counter.Received;
+                    _monitors[counter.Process.Id].BytesSent = counter.Sent;
+                    
+                    var receivedDiff = counter.Received - _monitors[counter.Process.Id].BytesReceived;
+                    var sentDiff = counter.Sent - _monitors[counter.Process.Id].BytesSent;
+                    _monitors[counter.Process.Id].BandwidthReceived = receivedDiff;
+                    _monitors[counter.Process.Id].BandwidthSent = sentDiff;
                 }
             }
 
-            // Reset the counters to get a fresh reading for next time this is called.
-            //ResetCounters();
+            if (!_isContinuous)
+                lock (_monitors)
+                {
+                    return _monitors.Values.ToList();
+                }
 
-            return monitors.Values.ToList();
+            if ((DateTime.Now - _lastProcessUpdateTime).TotalSeconds >= _updateProcessInterval)
+                UpdateProcesses();
+
+            lock (_monitors)
+            {
+                return _monitors.Values.ToList();
+            }
+        }
+
+        private void UpdateProcesses()
+        {
+            var processes = Process.GetProcesses();
+
+            lock (_processes)
+            {
+                foreach (var process in processes)
+                {
+                    if (_processes.Any(x => x.Id == process.Id))
+                        continue;
+
+                    AddProcess(process);
+                }
+
+                var processesToRemove = _processes
+                    .Where(x => processes.All(p => p.Id != x.Id))
+                    .Select(p => p.Id)
+                    .ToList();
+                
+                foreach (var processId in processesToRemove)
+                {
+                    RemoveProcess(processId);
+                }
+            }
+
+            _lastProcessUpdateTime = DateTime.Now;
         }
 
         private void ResetCounters()
         {
-            lock (processCounters)
+            lock (_processCounters)
             {
-                foreach (var counter in processCounters)
+                foreach (var counter in _processCounters.Values)
                 {
                     counter.Sent = 0;
                     counter.Received = 0;
                 }
             }
 
-            m_EtwStartTime = DateTime.Now;
+            //_mEtwStartTime = DateTime.Now;
         }
 
         public void Dispose()
         {
-            m_EtwSession?.Dispose();
+            _mEtwSession?.Dispose();
         }
     }
 
