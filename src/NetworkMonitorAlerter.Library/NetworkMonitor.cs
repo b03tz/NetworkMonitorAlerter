@@ -22,6 +22,7 @@ namespace NetworkMonitorAlerter.Library
         private readonly List<Process> _processes = new List<Process>();
         private readonly bool _isContinuous;
         private readonly int _updateProcessInterval;
+        private readonly int _maxLogAge;
 
         private class Counters
         {
@@ -30,15 +31,16 @@ namespace NetworkMonitorAlerter.Library
             public long Sent;
         }
 
-        private NetworkMonitor(bool isContinuous, int updateInterval = 30)
+        private NetworkMonitor(bool isContinuous, int updateInterval = 30, int maxLogAge = 300)
         {
             _updateProcessInterval = updateInterval;
+            _maxLogAge = maxLogAge;
             _isContinuous = isContinuous;
         }
 
-        public static NetworkMonitor Create(List<Process> processes)
+        public static NetworkMonitor Create(List<Process> processes, int maxLogAge = 300)
         {
-            var networkPerformancePresenter = new NetworkMonitor(false);
+            var networkPerformancePresenter = new NetworkMonitor(false, 30, maxLogAge);
 
             foreach (var process in processes)
                 networkPerformancePresenter.AddProcess(process);
@@ -47,9 +49,9 @@ namespace NetworkMonitorAlerter.Library
             return networkPerformancePresenter;
         }
 
-        public static NetworkMonitor CreateContinuousMonitor(int updateInterval = 30)
+        public static NetworkMonitor CreateContinuousMonitor(int updateInterval = 30, int maxLogAge = 300)
         {
-            var networkPerformancePresenter = new NetworkMonitor(true, updateInterval);
+            var networkPerformancePresenter = new NetworkMonitor(true, updateInterval, maxLogAge);
             networkPerformancePresenter.Initialize();
             return networkPerformancePresenter;
         }
@@ -173,6 +175,8 @@ namespace NetworkMonitorAlerter.Library
                     _monitors[counter.Process.Id].BytesSent = counter.Sent;
                     _monitors[counter.Process.Id].BandwidthReceived = receivedDiff;
                     _monitors[counter.Process.Id].BandwidthSent = sentDiff;
+                    _monitors[counter.Process.Id].BytesReceivedLog.Add((DateTimeOffset.Now, counter.Received));
+                    _monitors[counter.Process.Id].BytesSentLog.Add((DateTimeOffset.Now, counter.Sent));
                 }
             }
 
@@ -187,7 +191,17 @@ namespace NetworkMonitorAlerter.Library
 
             lock (_monitors)
             {
+                CleanLogData();
                 return _monitors.Values.ToList();
+            }
+        }
+
+        private void CleanLogData()
+        {
+            foreach (var monitor in _monitors.Values)
+            {
+                monitor.BytesReceivedLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
+                monitor.BytesSentLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
             }
         }
 
@@ -246,5 +260,12 @@ namespace NetworkMonitorAlerter.Library
         public long BytesSent { get; set; }
         public long BandwidthReceived { get; set; }
         public long BandwidthSent { get; set; }
+        public List<(DateTimeOffset Time, long Bytes)> BytesReceivedLog { get; set; } = new List<(DateTimeOffset Time, long Bytes)>();
+        public List<(DateTimeOffset Time, long Bytes)> BytesSentLog { get; set; } = new List<(DateTimeOffset Time, long Bytes)>();
+
+        public long TotalDownloadInWindow => 
+            BytesReceivedLog.Count == 0 ? 0 : BytesReceivedLog.Last().Bytes - BytesReceivedLog.First().Bytes;
+        public long TotalUploadInWindow => 
+            BytesSentLog.Count == 0 ? 0 : BytesSentLog.Last().Bytes - BytesSentLog.First().Bytes;
     }
 }

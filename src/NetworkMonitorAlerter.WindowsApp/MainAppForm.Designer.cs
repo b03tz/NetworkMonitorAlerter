@@ -29,6 +29,8 @@
         /// </summary>
         private void InitializeComponent()
         {
+            this.components = new System.ComponentModel.Container();
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainAppForm));
             this.textBoxConsole = new System.Windows.Forms.TextBox();
             this.timerData = new System.Timers.Timer();
             this.labelInfoMonitoring = new System.Windows.Forms.Label();
@@ -40,7 +42,11 @@
             this.label3 = new System.Windows.Forms.Label();
             this.textBoxMaxMbUploadInWindow = new System.Windows.Forms.TextBox();
             this.buttonSaveConfiguration = new System.Windows.Forms.Button();
+            this.systemTrayIcon = new System.Windows.Forms.NotifyIcon(this.components);
+            this.systemTrayMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.systemTrayMenuQuit = new System.Windows.Forms.ToolStripMenuItem();
             ((System.ComponentModel.ISupportInitialize) (this.timerData)).BeginInit();
+            this.systemTrayMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // textBoxConsole
@@ -146,6 +152,27 @@
             this.buttonSaveConfiguration.UseVisualStyleBackColor = true;
             this.buttonSaveConfiguration.Click += new System.EventHandler(this.buttonSaveConfiguration_Click);
             // 
+            // systemTrayIcon
+            // 
+            this.systemTrayIcon.BalloonTipText = "NetworkMonitorAlerter";
+            this.systemTrayIcon.BalloonTipTitle = "Alerter";
+            this.systemTrayIcon.Icon = ((System.Drawing.Icon) (resources.GetObject("systemTrayIcon.Icon")));
+            this.systemTrayIcon.Text = "NetworkMonitorAlerter";
+            this.systemTrayIcon.DoubleClick += new System.EventHandler(this.systemTrayIcon_DoubleClick);
+            // 
+            // systemTrayMenu
+            // 
+            this.systemTrayMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {this.systemTrayMenuQuit});
+            this.systemTrayMenu.Name = "systemTrayMenu";
+            this.systemTrayMenu.Size = new System.Drawing.Size(160, 48);
+            // 
+            // systemTrayMenuQuit
+            // 
+            this.systemTrayMenuQuit.Name = "systemTrayMenuQuit";
+            this.systemTrayMenuQuit.Size = new System.Drawing.Size(159, 22);
+            this.systemTrayMenuQuit.Text = "Quit application";
+            this.systemTrayMenuQuit.Click += new System.EventHandler(this.systemTrayMenuQuit_Click);
+            // 
             // MainAppForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -163,11 +190,20 @@
             this.Controls.Add(this.textBoxConsole);
             this.Name = "MainAppForm";
             this.Text = "Network Monitor";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainAppForm_FormClosing);
             this.SizeChanged += new System.EventHandler(this.MainAppForm_SizeChanged);
+            this.Resize += new System.EventHandler(this.MainAppForm_Resize);
             ((System.ComponentModel.ISupportInitialize) (this.timerData)).EndInit();
+            this.systemTrayMenu.ResumeLayout(false);
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+
+        private System.Windows.Forms.ToolStripMenuItem systemTrayMenuQuit;
+
+        private System.Windows.Forms.ContextMenuStrip systemTrayMenu;
+
+        private System.Windows.Forms.NotifyIcon systemTrayIcon;
 
         private System.Windows.Forms.Button buttonSaveConfiguration;
 

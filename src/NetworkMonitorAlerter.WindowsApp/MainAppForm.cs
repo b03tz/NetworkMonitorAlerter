@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Threading.Tasks;
 using System.Timers;
 using System.Windows.Forms;
 using NetworkMonitorAlerter.Library;
@@ -13,10 +12,10 @@ namespace NetworkMonitorAlerter.WindowsApp
 {
     public partial class MainAppForm : Form
     {
-        private string _configFile = "configuration.json";
-        public Configuration Configuration;
-        private NetworkMonitor _networkMonitor;
-        private List<string> _openForms = new List<string>();
+        private const string ConfigFile = "configuration.json";
+        public Configuration Configuration = new Configuration();
+        private NetworkMonitor? _networkMonitor;
+        private readonly List<string> _openForms = new List<string>();
 
         public MainAppForm()
         {
@@ -29,21 +28,22 @@ namespace NetworkMonitorAlerter.WindowsApp
         private void GetConfiguration()
         {
             Configuration = new Configuration();
-            if (!File.Exists(_configFile))
+            if (!File.Exists(ConfigFile))
             {
-                File.Create(_configFile);
+                File.Create(ConfigFile);
                 WriteConfiguration();
             }
 
-            var configContent = File.ReadAllText(_configFile);
+            var configContent = File.ReadAllText(ConfigFile);
             Configuration = JsonConvert.DeserializeObject<Configuration>(configContent) ?? new Configuration();
 
             if (Configuration == null)
                 throw new Exception("Configuration file could not be loaded");
         }
 
-        public async void InitializeMonitor()
+        public void InitializeMonitor()
         {
+            systemTrayIcon.Visible = true;
             textBoxConsole.Text = "";
             GetConfiguration();
 
@@ -63,6 +63,9 @@ namespace NetworkMonitorAlerter.WindowsApp
 
         private void timerData_Elapsed(object sender, ElapsedEventArgs e)
         {
+            if (_networkMonitor == null)
+                return;
+            
             textBoxConsole.Text = "";
             var performanceData = _networkMonitor.GetNetworkPerformanceData();
             performanceData = performanceData.OrderBy(x => x.Process.ProcessName).ToList();
@@ -71,12 +74,15 @@ namespace NetworkMonitorAlerter.WindowsApp
             foreach (var data in performanceData)
             {
                 if (data.BytesReceived > 0)
+                {
                     Logger.Log(
-                        $"D: {Logger.ToFixedString(data.BandwidthReceived.ToString(), 10)}      U: {Logger.ToFixedString(data.BandwidthSent.ToString(), 10)} - {data.Process.ProcessName}");
+                        $"D: {Logger.ToFixedString(data.TotalDownloadInWindow.ToString(), 10)}      U: {Logger.ToFixedString(data.TotalUploadInWindow.ToString(), 10)} - {data.Process.ProcessName}");
+                }
+                    
 
                 var uploadFormName = data.Process.ProcessName.ToLower() + "_u";
                 var downloadFormName = data.Process.ProcessName.ToLower() + "_d";
-                if (data.BandwidthSent > Configuration.MaxBytesUploadInWindow &&
+                if (data.TotalUploadInWindow > Configuration.MaxBytesUploadInWindow &&
                     !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Upload) &&
                     !_openForms.Contains(uploadFormName))
                 {
@@ -89,7 +95,7 @@ namespace NetworkMonitorAlerter.WindowsApp
                     k.Activate();
                 }
 
-                if (data.BandwidthReceived > Configuration.MaxBytesDownloadInWindow &&
+                if (data.TotalDownloadInWindow > Configuration.MaxBytesDownloadInWindow &&
                     !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Download) &&
                     !_openForms.Contains(downloadFormName))
                 {
@@ -145,7 +151,7 @@ namespace NetworkMonitorAlerter.WindowsApp
 
         private void WriteConfiguration()
         {
-            File.WriteAllText(_configFile, JsonConvert.SerializeObject(Configuration, Formatting.Indented));
+            File.WriteAllText(ConfigFile, JsonConvert.SerializeObject(Configuration, Formatting.Indented));
         }
 
         private bool IsApplicationWhitelisted(Process process, DownloadOrUpload type)
@@ -181,7 +187,37 @@ namespace NetworkMonitorAlerter.WindowsApp
 
         private void MainAppForm_SizeChanged(object sender, EventArgs e)
         {
-            textBoxConsole.Height = this.Height - 205;
+            textBoxConsole.Height = Height - 205;
+        }
+
+        private void MainAppForm_Resize(object sender, EventArgs e)
+        {
+            if (WindowState == FormWindowState.Minimized)
+            {
+                Hide();
+                systemTrayIcon.Visible = true;
+            }
+        }
+
+        private void systemTrayIcon_DoubleClick(object sender, EventArgs e)
+        {
+            Show();
+            WindowState = FormWindowState.Normal;
+        }
+
+        private void MainAppForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason != CloseReason.UserClosing) 
+                return;
+            
+            systemTrayIcon.Visible = true;
+            Hide();
+            e.Cancel = true;
+        }
+
+        private void systemTrayMenuQuit_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
         }
     }
 }
