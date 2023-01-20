@@ -8,4 +8,4 @@ After that you can choose to whitelist the app for an hour, a day or infinite or
 
 I made this to monitor the bandwidth usage of my processes that upload or download stuff without me knowing.
 
-It required administrative privileges!
+It requires administrative privileges!
