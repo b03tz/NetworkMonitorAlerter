@@ -8,6 +8,6 @@ After that you can choose to whitelist the app for an hour, a day or infinite or
 
 I made this to monitor the bandwidth usage of my processes that upload or download stuff without me knowing.
 
-It requires administrative privileges!
+It requires administrative privileges because it uses TraceEventSession with the NetworkTCPIP kernel provider.
 
 ![NetworkMonitorAlerter screenshot](https://github.com/b03tz/NetworkMonitorAlerter/blob/master/assets/screenshot.png)
