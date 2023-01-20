@@ -14,12 +14,13 @@ namespace NetworkMonitorAlerter.Library
         private DateTime _lastProcessUpdateTime;
         private TraceEventSession _mEtwSession;
 
-        private readonly Dictionary<int, Counters> _processCounters = new Dictionary<int, Counters>();
+        private readonly Dictionary<string, Counters> _processCounters = new Dictionary<string, Counters>();
 
-        private readonly Dictionary<int, NetworkPerformanceData> _monitors =
-            new Dictionary<int, NetworkPerformanceData>();
+        private readonly Dictionary<string, NetworkPerformanceData> _monitors =
+            new Dictionary<string, NetworkPerformanceData>();
 
         private readonly List<Process> _processes = new List<Process>();
+        private readonly HashSet<Process> _allProcesses = new HashSet<Process>();
         private readonly bool _isContinuous;
         private readonly int _updateProcessInterval;
         private readonly int _maxLogAge;
@@ -43,7 +44,9 @@ namespace NetworkMonitorAlerter.Library
             var networkPerformancePresenter = new NetworkMonitor(false, 30, maxLogAge);
 
             foreach (var process in processes)
+            {
                 networkPerformancePresenter.AddProcess(process);
+            }
 
             networkPerformancePresenter.Initialize();
             return networkPerformancePresenter;
@@ -56,6 +59,16 @@ namespace NetworkMonitorAlerter.Library
             return networkPerformancePresenter;
         }
 
+        private string GetProcessName(Process process) => process == null ? "" : process.ProcessName.ToLower();
+
+        private string GetProcessName(int processId)
+        {
+            lock (_processes)
+            {
+                return GetProcessName(_allProcesses.FirstOrDefault(x => x.Id == processId));
+            }
+        }
+
         public void AddProcess(Process process)
         {
             if (process == null)
@@ -63,7 +76,7 @@ namespace NetworkMonitorAlerter.Library
 
             lock (_processCounters)
             {
-                if (_processCounters.ContainsKey(process.Id))
+                if (_processCounters.ContainsKey(GetProcessName(process)))
                     return;
             }
 
@@ -74,7 +87,7 @@ namespace NetworkMonitorAlerter.Library
 
             lock (_processCounters)
             {
-                _processCounters.Add(process.Id, new Counters
+                _processCounters.Add(GetProcessName(process), new Counters
                 {
                     Process = process,
                     Received = 0,
@@ -84,30 +97,28 @@ namespace NetworkMonitorAlerter.Library
 
             lock (_monitors)
             {
-                _monitors.Add(process.Id, new NetworkPerformanceData
+                _monitors.Add(GetProcessName(process), new NetworkPerformanceData
                 {
                     Process = process
                 });
             }
         }
 
-        public void RemoveProcess(int processId)
+        public void RemoveProcess(string processName)
         {
             lock (_processes)
             {
-                var p = _processes.FirstOrDefault(x => x.Id == processId);
-                if (p != null)
-                    _processes.Remove(p);
+                _processes.RemoveAll(x => GetProcessName(x) == processName);
             }
 
             lock (_processCounters)
             {
-                _processCounters.Remove(processId);
+                _processCounters.Remove(processName);
             }
 
             lock (_monitors)
             {
-                _monitors.Remove(processId);
+                _monitors.Remove(processName);
             }
         }
 
@@ -133,22 +144,20 @@ namespace NetworkMonitorAlerter.Library
                     {
                         lock (_processCounters)
                         {
-                            if (!_processCounters.ContainsKey(data.ProcessID)) return;
+                            if (!_processCounters.ContainsKey(GetProcessName(data.ProcessID))) return;
                             
-                            _processCounters[data.ProcessID].Received += Convert.ToInt64(data.size);
+                            _processCounters[GetProcessName(data.ProcessID)].Received += Convert.ToInt64(data.size);
                         }
                     };
 
-                    _mEtwSession.Source.Kernel.TcpIpSend += data =>
-                    {
-                        
-                        lock (_processCounters)
-                        {
-                            if (!_processCounters.ContainsKey(data.ProcessID)) return;
-                            
-                            _processCounters[data.ProcessID].Sent += Convert.ToInt64(data.size);
-                        }
-                    };
+                    _mEtwSession.Source.Kernel.TcpIpSend += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
+                    _mEtwSession.Source.Kernel.TcpIpRecv += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
+                    _mEtwSession.Source.Kernel.TcpIpSendIPV6 += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
+                    _mEtwSession.Source.Kernel.TcpIpRecvIPV6 += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
+                    _mEtwSession.Source.Kernel.UdpIpSend += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
+                    _mEtwSession.Source.Kernel.UdpIpRecv += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
+                    _mEtwSession.Source.Kernel.UdpIpSendIPV6 += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
+                    _mEtwSession.Source.Kernel.UdpIpRecvIPV6 += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
 
                     _mEtwSession.Source.Process();
                 }
@@ -160,6 +169,26 @@ namespace NetworkMonitorAlerter.Library
             }
         }
         
+        private void LogSentData(string processName, int size)
+        {
+            lock (_processCounters)
+            {
+                if (!_processCounters.ContainsKey(processName)) return;
+                            
+                _processCounters[processName].Sent += Convert.ToInt64(size);
+            }
+        }
+
+        private void LogReceivedData(string processName, int size)
+        {
+            lock (_processCounters)
+            {
+                if (!_processCounters.ContainsKey(processName)) return;
+                            
+                _processCounters[processName].Received += Convert.ToInt64(size);
+            }
+        }
+
         public List<NetworkPerformanceData> GetNetworkPerformanceData()
         {
             //var timeDifferenceInSeconds = (DateTime.Now - _mEtwStartTime).TotalSeconds;
@@ -168,15 +197,15 @@ namespace NetworkMonitorAlerter.Library
             {
                 foreach (var counter in _processCounters.Values)
                 {
-                    var receivedDiff = counter.Received - _monitors[counter.Process.Id].BytesReceived;
-                    var sentDiff = counter.Sent - _monitors[counter.Process.Id].BytesSent;
+                    var receivedDiff = counter.Received - _monitors[GetProcessName(counter.Process)].BytesReceived;
+                    var sentDiff = counter.Sent - _monitors[GetProcessName(counter.Process)].BytesSent;
                     
-                    _monitors[counter.Process.Id].BytesReceived = counter.Received;
-                    _monitors[counter.Process.Id].BytesSent = counter.Sent;
-                    _monitors[counter.Process.Id].BandwidthReceived = receivedDiff;
-                    _monitors[counter.Process.Id].BandwidthSent = sentDiff;
-                    _monitors[counter.Process.Id].BytesReceivedLog.Add((DateTimeOffset.Now, counter.Received));
-                    _monitors[counter.Process.Id].BytesSentLog.Add((DateTimeOffset.Now, counter.Sent));
+                    _monitors[GetProcessName(counter.Process)].BytesReceived = counter.Received;
+                    _monitors[GetProcessName(counter.Process)].BytesSent = counter.Sent;
+                    _monitors[GetProcessName(counter.Process)].BandwidthReceived = receivedDiff;
+                    _monitors[GetProcessName(counter.Process)].BandwidthSent = sentDiff;
+                    _monitors[GetProcessName(counter.Process)].BytesReceivedLog.Add((DateTimeOffset.Now, counter.Received));
+                    _monitors[GetProcessName(counter.Process)].BytesSentLog.Add((DateTimeOffset.Now, counter.Sent));
                 }
             }
 
@@ -209,24 +238,32 @@ namespace NetworkMonitorAlerter.Library
         {
             var processes = Process.GetProcesses();
 
+            lock (_allProcesses)
+            {
+                _allProcesses.Clear();
+                foreach (var p in processes)
+                    _allProcesses.Add(p);
+            }
+
             lock (_processes)
             {
                 foreach (var process in processes)
                 {
-                    if (_processes.Any(x => x.Id == process.Id))
+                    if (_processes.Any(x => GetProcessName(x) == GetProcessName(process)))
                         continue;
 
                     AddProcess(process);
                 }
-
+                
                 var processesToRemove = _processes
-                    .Where(x => processes.All(p => p.Id != x.Id))
-                    .Select(p => p.Id)
+                    .Where(x => processes.All(p => GetProcessName(p) != GetProcessName(x)))
+                    .Select(GetProcessName)
+                    .Distinct()
                     .ToList();
                 
-                foreach (var processId in processesToRemove)
+                foreach (var processName in processesToRemove)
                 {
-                    RemoveProcess(processId);
+                    RemoveProcess(processName);
                 }
             }
 

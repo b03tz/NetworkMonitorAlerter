@@ -4,8 +4,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkMonitorAlerter.Libra
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkMonitorAlerter.WindowsApp", "src\NetworkMonitorAlerter.WindowsApp\NetworkMonitorAlerter.WindowsApp.csproj", "{416E6147-2255-4EAF-8A3B-3FAB8E49542C}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetworkMonitorAlert.ConsoleTestApp", "src\NetworkMonitorAlert.ConsoleTestApp\NetworkMonitorAlert.ConsoleTestApp.csproj", "{8EDFD617-CE87-489D-806D-04548D77EEE2}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -20,9 +18,5 @@ Global
 		{416E6147-2255-4EAF-8A3B-3FAB8E49542C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{416E6147-2255-4EAF-8A3B-3FAB8E49542C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{416E6147-2255-4EAF-8A3B-3FAB8E49542C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{8EDFD617-CE87-489D-806D-04548D77EEE2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{8EDFD617-CE87-489D-806D-04548D77EEE2}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{8EDFD617-CE87-489D-806D-04548D77EEE2}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{8EDFD617-CE87-489D-806D-04548D77EEE2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

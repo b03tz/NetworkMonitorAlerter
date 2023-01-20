@@ -156,6 +156,7 @@
             // 
             this.systemTrayIcon.BalloonTipText = "NetworkMonitorAlerter";
             this.systemTrayIcon.BalloonTipTitle = "Alerter";
+            this.systemTrayIcon.ContextMenuStrip = this.systemTrayMenu;
             this.systemTrayIcon.Icon = ((System.Drawing.Icon) (resources.GetObject("systemTrayIcon.Icon")));
             this.systemTrayIcon.Text = "NetworkMonitorAlerter";
             this.systemTrayIcon.DoubleClick += new System.EventHandler(this.systemTrayIcon_DoubleClick);
@@ -164,7 +165,7 @@
             // 
             this.systemTrayMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {this.systemTrayMenuQuit});
             this.systemTrayMenu.Name = "systemTrayMenu";
-            this.systemTrayMenu.Size = new System.Drawing.Size(160, 48);
+            this.systemTrayMenu.Size = new System.Drawing.Size(160, 26);
             // 
             // systemTrayMenuQuit
             // 
@@ -188,6 +189,7 @@
             this.Controls.Add(this.labelMonitoringValue);
             this.Controls.Add(this.labelInfoMonitoring);
             this.Controls.Add(this.textBoxConsole);
+            this.Icon = ((System.Drawing.Icon) (resources.GetObject("$this.Icon")));
             this.Name = "MainAppForm";
             this.Text = "Network Monitor";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.MainAppForm_FormClosing);

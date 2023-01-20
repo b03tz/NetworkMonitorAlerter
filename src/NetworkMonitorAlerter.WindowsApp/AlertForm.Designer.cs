@@ -111,6 +111,7 @@ namespace NetworkMonitorAlerter.WindowsApp
             this.Controls.Add(this.buttonWhitelistDay);
             this.Controls.Add(this.buttonWhitelistHour);
             this.Controls.Add(this.textBoxInfo);
+            this.Icon = ((System.Drawing.Icon) (resources.GetObject("$this.Icon")));
             this.Name = "AlertForm";
             this.Text = "Alert";
             this.ResumeLayout(false);

@@ -78,7 +78,6 @@ namespace NetworkMonitorAlerter.WindowsApp
                     Logger.Log(
                         $"D: {Logger.ToFixedString(data.TotalDownloadInWindow.ToString(), 10)}      U: {Logger.ToFixedString(data.TotalUploadInWindow.ToString(), 10)} - {data.Process.ProcessName}");
                 }
-                    
 
                 var uploadFormName = data.Process.ProcessName.ToLower() + "_u";
                 var downloadFormName = data.Process.ProcessName.ToLower() + "_d";
