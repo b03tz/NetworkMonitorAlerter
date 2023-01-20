@@ -6,7 +6,7 @@ For instance you can set it to trigger on 15MB per 5 minutes (default settings) 
 
 After that you can choose to whitelist the app for an hour, a day or infinite or not whitelist it at all (which will trigger notifications again).
 
-I made this to monitor the bandwidth usage of my processes that upload or download stuff without me knowing.
+I made this to monitor the bandwidth usage of my processes that upload or download stuff without me knowing. If you 'close' it it keeps running in the systemtray.
 
 It requires administrative privileges because it uses TraceEventSession with the NetworkTCPIP kernel provider.
 
