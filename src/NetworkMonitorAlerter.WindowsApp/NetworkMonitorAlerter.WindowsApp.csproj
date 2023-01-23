@@ -61,6 +61,12 @@
         <Compile Include="AlertForm.Designer.cs">
           <DependentUpon>AlertForm.cs</DependentUpon>
         </Compile>
+        <Compile Include="LogForm.cs">
+          <SubType>Form</SubType>
+        </Compile>
+        <Compile Include="LogForm.Designer.cs">
+          <DependentUpon>LogForm.cs</DependentUpon>
+        </Compile>
         <Compile Include="MainAppForm.cs">
             <SubType>Form</SubType>
         </Compile>
@@ -71,6 +77,9 @@
         <Compile Include="Properties\AssemblyInfo.cs" />
         <EmbeddedResource Include="AlertForm.resx">
           <DependentUpon>AlertForm.cs</DependentUpon>
+        </EmbeddedResource>
+        <EmbeddedResource Include="LogForm.resx">
+          <DependentUpon>LogForm.cs</DependentUpon>
         </EmbeddedResource>
         <EmbeddedResource Include="MainAppForm.resx">
           <DependentUpon>MainAppForm.cs</DependentUpon>

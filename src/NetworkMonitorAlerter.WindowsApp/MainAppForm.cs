@@ -17,12 +17,13 @@ namespace NetworkMonitorAlerter.WindowsApp
         private NetworkMonitor? _networkMonitor;
         private readonly List<string> _openForms = new List<string>();
         private readonly List<BandwidthLogger> _loggers = new List<BandwidthLogger>();
+        public Button ShowLogButton => buttonLogs;
 
         public MainAppForm()
         {
             InitializeComponent();
             InitializeMonitor();
-
+            
             TextBoxLogger.TextBox = textBoxConsole;
         }
 
@@ -233,6 +234,12 @@ namespace NetworkMonitorAlerter.WindowsApp
         {
             foreach(var logger in _loggers)
                 logger.WriteLogFile();
+        }
+
+        private void buttonLogs_Click(object sender, EventArgs e)
+        {
+            buttonLogs.Enabled = false;
+            new LogForm(_loggers, this).Show();
         }
     }
 }

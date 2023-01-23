@@ -11,18 +11,23 @@ namespace NetworkMonitorAlerter.Library
     {
         private readonly string _logDirectory = "logs";
         private LogFile _logFileContents = null;
-        private LoggerType _type = LoggerType.Daily;
+        public readonly LoggerType Type = LoggerType.Daily;
         private string _logFile = "";
-            
+        
         public BandwidthLogger(LoggerType type)
         {
-            _type = type;
+            Type = type;
             _logDirectory = Path.Combine(_logDirectory, type.ToString());
             
             if (!Directory.Exists(_logDirectory))
                 Directory.CreateDirectory(_logDirectory);
 
             ReadLogFile();
+        }
+        
+        public LogFile GetLog()
+        {
+            return _logFileContents;
         }
 
         private void ReadLogFile()
@@ -82,7 +87,7 @@ namespace NetworkMonitorAlerter.Library
         {
             var dateFormat = "";
             
-            switch (_type)
+            switch (Type)
             {
                 case LoggerType.Daily:
                     dateFormat = DateTime.Now.ToString("yyMMdd");

@@ -46,6 +46,7 @@
             this.systemTrayMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.systemTrayMenuQuit = new System.Windows.Forms.ToolStripMenuItem();
             this.timerLogger = new System.Timers.Timer();
+            this.buttonLogs = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize) (this.timerData)).BeginInit();
             this.systemTrayMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) (this.timerLogger)).BeginInit();
@@ -182,11 +183,24 @@
             this.timerLogger.SynchronizingObject = this;
             this.timerLogger.Elapsed += new System.Timers.ElapsedEventHandler(this.timerLogger_Elapsed);
             // 
+            // buttonLogs
+            // 
+            this.buttonLogs.BackColor = System.Drawing.Color.MediumTurquoise;
+            this.buttonLogs.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
+            this.buttonLogs.Location = new System.Drawing.Point(407, 118);
+            this.buttonLogs.Name = "buttonLogs";
+            this.buttonLogs.Size = new System.Drawing.Size(96, 23);
+            this.buttonLogs.TabIndex = 10;
+            this.buttonLogs.Text = "Show logs";
+            this.buttonLogs.UseVisualStyleBackColor = false;
+            this.buttonLogs.Click += new System.EventHandler(this.buttonLogs_Click);
+            // 
             // MainAppForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(515, 418);
+            this.Controls.Add(this.buttonLogs);
             this.Controls.Add(this.buttonSaveConfiguration);
             this.Controls.Add(this.label3);
             this.Controls.Add(this.textBoxMaxMbUploadInWindow);
@@ -209,6 +223,8 @@
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+
+        private System.Windows.Forms.Button buttonLogs;
 
         private System.Timers.Timer timerLogger;
 
