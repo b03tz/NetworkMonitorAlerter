@@ -3,7 +3,7 @@ using System.Windows.Forms;
 
 namespace NetworkMonitorAlerter.Library
 {
-    public static class Logger
+    public static class TextBoxLogger
     {
         public static TextBox TextBox { get; set; }
         private static List<string> LogMessages { get; set; } = new List<string>();

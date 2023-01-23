@@ -45,8 +45,10 @@
             this.systemTrayIcon = new System.Windows.Forms.NotifyIcon(this.components);
             this.systemTrayMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.systemTrayMenuQuit = new System.Windows.Forms.ToolStripMenuItem();
+            this.timerLogger = new System.Timers.Timer();
             ((System.ComponentModel.ISupportInitialize) (this.timerData)).BeginInit();
             this.systemTrayMenu.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize) (this.timerLogger)).BeginInit();
             this.SuspendLayout();
             // 
             // textBoxConsole
@@ -174,6 +176,12 @@
             this.systemTrayMenuQuit.Text = "Quit application";
             this.systemTrayMenuQuit.Click += new System.EventHandler(this.systemTrayMenuQuit_Click);
             // 
+            // timerLogger
+            // 
+            this.timerLogger.Interval = 30000D;
+            this.timerLogger.SynchronizingObject = this;
+            this.timerLogger.Elapsed += new System.Timers.ElapsedEventHandler(this.timerLogger_Elapsed);
+            // 
             // MainAppForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
@@ -197,9 +205,12 @@
             this.Resize += new System.EventHandler(this.MainAppForm_Resize);
             ((System.ComponentModel.ISupportInitialize) (this.timerData)).EndInit();
             this.systemTrayMenu.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize) (this.timerLogger)).EndInit();
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+
+        private System.Timers.Timer timerLogger;
 
         private System.Windows.Forms.ToolStripMenuItem systemTrayMenuQuit;
 

@@ -16,13 +16,14 @@ namespace NetworkMonitorAlerter.WindowsApp
         public Configuration Configuration = new Configuration();
         private NetworkMonitor? _networkMonitor;
         private readonly List<string> _openForms = new List<string>();
+        private readonly List<BandwidthLogger> _loggers = new List<BandwidthLogger>();
 
         public MainAppForm()
         {
             InitializeComponent();
             InitializeMonitor();
 
-            Logger.TextBox = textBoxConsole;
+            TextBoxLogger.TextBox = textBoxConsole;
         }
 
         private void GetConfiguration()
@@ -43,6 +44,13 @@ namespace NetworkMonitorAlerter.WindowsApp
 
         public void InitializeMonitor()
         {
+            _loggers.Add(new BandwidthLogger(LoggerType.Daily));
+            _loggers.Add(new BandwidthLogger(LoggerType.Weekly));
+            _loggers.Add(new BandwidthLogger(LoggerType.Monthly));
+            
+            timerLogger.Interval = (3 * 60);
+            timerLogger.Enabled = true;
+            
             systemTrayIcon.Visible = true;
             textBoxConsole.Text = "";
             GetConfiguration();
@@ -75,12 +83,20 @@ namespace NetworkMonitorAlerter.WindowsApp
             {
                 if (data.BytesReceived > 0)
                 {
-                    Logger.Log(
-                        $"D: {Logger.ToFixedString(data.TotalDownloadInWindow.ToString(), 10)}      U: {Logger.ToFixedString(data.TotalUploadInWindow.ToString(), 10)} - {data.Process.ProcessName}");
+                    TextBoxLogger.Log(
+                        $"D: {TextBoxLogger.ToFixedString(data.TotalDownloadInWindow.ToString(), 10)}      U: {TextBoxLogger.ToFixedString(data.TotalUploadInWindow.ToString(), 10)} - {data.Process.ProcessName}");
                 }
 
-                var uploadFormName = data.Process.ProcessName.ToLower() + "_u";
-                var downloadFormName = data.Process.ProcessName.ToLower() + "_d";
+                var processName = data.Process.ProcessName.ToLower();
+
+                foreach (var logger in _loggers)
+                {
+                    logger.AddBandwidth(processName, data.BandwidthReceived, DownloadOrUpload.Download);
+                    logger.AddBandwidth(processName, data.BandwidthSent, DownloadOrUpload.Upload);
+                }
+        
+                var uploadFormName = processName + "_u";
+                var downloadFormName = processName + "_d";
                 if (data.TotalUploadInWindow > Configuration.MaxBytesUploadInWindow &&
                     !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Upload) &&
                     !_openForms.Contains(uploadFormName))
@@ -173,12 +189,6 @@ namespace NetworkMonitorAlerter.WindowsApp
             return false;
         }
 
-        public enum DownloadOrUpload
-        {
-            Download,
-            Upload
-        }
-
         public string GetProcessTitle(Process process)
         {
             return process.ProcessName;
@@ -217,6 +227,12 @@ namespace NetworkMonitorAlerter.WindowsApp
         private void systemTrayMenuQuit_Click(object sender, EventArgs e)
         {
             Application.Exit();
+        }
+
+        private void timerLogger_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            foreach(var logger in _loggers)
+                logger.WriteLogFile();
         }
     }
 }

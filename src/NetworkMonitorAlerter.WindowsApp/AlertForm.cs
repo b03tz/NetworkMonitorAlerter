@@ -1,16 +1,17 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Windows.Forms;
+using NetworkMonitorAlerter.Library;
 
 namespace NetworkMonitorAlerter.WindowsApp
 {
     public partial class AlertForm : Form
     {
         private MainAppForm _mainAppForm;
-        private MainAppForm.DownloadOrUpload _downloadOrUpload;
+        private DownloadOrUpload _downloadOrUpload;
         private Process _process;
 
-        public AlertForm(MainAppForm mainAppForm, MainAppForm.DownloadOrUpload downloadOrUpload, Process process)
+        public AlertForm(MainAppForm mainAppForm, DownloadOrUpload downloadOrUpload, Process process)
         {
             _mainAppForm = mainAppForm;
             _downloadOrUpload = downloadOrUpload;
@@ -20,10 +21,10 @@ namespace NetworkMonitorAlerter.WindowsApp
             
             switch (downloadOrUpload)
             {
-                case MainAppForm.DownloadOrUpload.Download:
+                case DownloadOrUpload.Download:
                     textBoxInfo.Text = $"The process '{mainAppForm.GetProcessTitle(process)}' has downloaded more than {_mainAppForm.Configuration.MaxMbDownloadInWindow} MB of data in the last {_mainAppForm.Configuration.RollingWindowSeconds} seconds.";
                     break;
-                case MainAppForm.DownloadOrUpload.Upload:
+                case DownloadOrUpload.Upload:
                     textBoxInfo.Text = $"The process '{mainAppForm.GetProcessTitle(process)}' has uploaded more than {_mainAppForm.Configuration.MaxMbUploadInWindow} MB of data in the last {_mainAppForm.Configuration.RollingWindowSeconds} seconds.";
                     break;
             }
