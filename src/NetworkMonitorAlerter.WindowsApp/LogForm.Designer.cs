@@ -33,48 +33,63 @@ namespace NetworkMonitorAlerter.WindowsApp
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LogForm));
             this.listLogViewer = new System.Windows.Forms.ListView();
-            this.buttonDaily = new System.Windows.Forms.Button();
-            this.buttonWeekly = new System.Windows.Forms.Button();
-            this.buttonMonthly = new System.Windows.Forms.Button();
+            this.tabLogView = new System.Windows.Forms.TabControl();
+            this.tabDaily = new System.Windows.Forms.TabPage();
+            this.tabWeekly = new System.Windows.Forms.TabPage();
+            this.tabMonthly = new System.Windows.Forms.TabPage();
+            this.tabLogView.SuspendLayout();
+            this.tabDaily.SuspendLayout();
             this.SuspendLayout();
             // 
             // listLogViewer
             // 
-            this.listLogViewer.Location = new System.Drawing.Point(12, 43);
+            this.listLogViewer.Location = new System.Drawing.Point(0, 0);
             this.listLogViewer.Name = "listLogViewer";
-            this.listLogViewer.Size = new System.Drawing.Size(776, 395);
+            this.listLogViewer.Size = new System.Drawing.Size(769, 400);
             this.listLogViewer.TabIndex = 0;
             this.listLogViewer.UseCompatibleStateImageBehavior = false;
             // 
-            // buttonDaily
+            // tabLogView
             // 
-            this.buttonDaily.Location = new System.Drawing.Point(12, 12);
-            this.buttonDaily.Name = "buttonDaily";
-            this.buttonDaily.Size = new System.Drawing.Size(115, 23);
-            this.buttonDaily.TabIndex = 1;
-            this.buttonDaily.Text = "Daily";
-            this.buttonDaily.UseVisualStyleBackColor = true;
-            this.buttonDaily.Click += new System.EventHandler(this.buttonDaily_Click);
+            this.tabLogView.Controls.Add(this.tabDaily);
+            this.tabLogView.Controls.Add(this.tabWeekly);
+            this.tabLogView.Controls.Add(this.tabMonthly);
+            this.tabLogView.Location = new System.Drawing.Point(12, 12);
+            this.tabLogView.Name = "tabLogView";
+            this.tabLogView.SelectedIndex = 0;
+            this.tabLogView.Size = new System.Drawing.Size(780, 426);
+            this.tabLogView.TabIndex = 4;
+            this.tabLogView.SelectedIndexChanged += new System.EventHandler(this.tabLogView_SelectedIndexChanged);
             // 
-            // buttonWeekly
+            // tabDaily
             // 
-            this.buttonWeekly.Location = new System.Drawing.Point(133, 12);
-            this.buttonWeekly.Name = "buttonWeekly";
-            this.buttonWeekly.Size = new System.Drawing.Size(115, 23);
-            this.buttonWeekly.TabIndex = 2;
-            this.buttonWeekly.Text = "Weekly";
-            this.buttonWeekly.UseVisualStyleBackColor = true;
-            this.buttonWeekly.Click += new System.EventHandler(this.buttonWeekly_Click);
+            this.tabDaily.Controls.Add(this.listLogViewer);
+            this.tabDaily.Location = new System.Drawing.Point(4, 22);
+            this.tabDaily.Name = "tabDaily";
+            this.tabDaily.Padding = new System.Windows.Forms.Padding(3);
+            this.tabDaily.Size = new System.Drawing.Size(772, 400);
+            this.tabDaily.TabIndex = 0;
+            this.tabDaily.Text = "Daily";
+            this.tabDaily.UseVisualStyleBackColor = true;
             // 
-            // buttonMonthly
+            // tabWeekly
             // 
-            this.buttonMonthly.Location = new System.Drawing.Point(254, 12);
-            this.buttonMonthly.Name = "buttonMonthly";
-            this.buttonMonthly.Size = new System.Drawing.Size(115, 23);
-            this.buttonMonthly.TabIndex = 3;
-            this.buttonMonthly.Text = "Monthly";
-            this.buttonMonthly.UseVisualStyleBackColor = true;
-            this.buttonMonthly.Click += new System.EventHandler(this.buttonMonthly_Click);
+            this.tabWeekly.Location = new System.Drawing.Point(4, 22);
+            this.tabWeekly.Name = "tabWeekly";
+            this.tabWeekly.Padding = new System.Windows.Forms.Padding(3);
+            this.tabWeekly.Size = new System.Drawing.Size(772, 400);
+            this.tabWeekly.TabIndex = 1;
+            this.tabWeekly.Text = "Weekly";
+            this.tabWeekly.UseVisualStyleBackColor = true;
+            // 
+            // tabMonthly
+            // 
+            this.tabMonthly.Location = new System.Drawing.Point(4, 22);
+            this.tabMonthly.Name = "tabMonthly";
+            this.tabMonthly.Size = new System.Drawing.Size(772, 400);
+            this.tabMonthly.TabIndex = 2;
+            this.tabMonthly.Text = "Monthly";
+            this.tabMonthly.UseVisualStyleBackColor = true;
             // 
             // LogForm
             // 
@@ -82,20 +97,21 @@ namespace NetworkMonitorAlerter.WindowsApp
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Controls.Add(this.buttonMonthly);
-            this.Controls.Add(this.buttonWeekly);
-            this.Controls.Add(this.buttonDaily);
-            this.Controls.Add(this.listLogViewer);
+            this.Controls.Add(this.tabLogView);
             this.Icon = ((System.Drawing.Icon) (resources.GetObject("$this.Icon")));
             this.Location = new System.Drawing.Point(15, 15);
             this.Name = "LogForm";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.LogForm_FormClosing);
+            this.tabLogView.ResumeLayout(false);
+            this.tabDaily.ResumeLayout(false);
             this.ResumeLayout(false);
         }
 
-        private System.Windows.Forms.Button buttonDaily;
-        private System.Windows.Forms.Button buttonWeekly;
-        private System.Windows.Forms.Button buttonMonthly;
+        private System.Windows.Forms.TabPage tabDaily;
+
+        private System.Windows.Forms.TabControl tabLogView;
+        private System.Windows.Forms.TabPage tabMonthly;
+        private System.Windows.Forms.TabPage tabWeekly;
 
         private System.Windows.Forms.ListView listLogViewer;
 

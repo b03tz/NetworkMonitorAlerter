@@ -86,30 +86,35 @@ namespace NetworkMonitorAlerter.WindowsApp
         {
             var mb = Convert.ToDecimal(totalBytes);
             var converted = Math.Round(mb / 1024 / 1024, 2, MidpointRounding.ToEven);
-            return converted.ToString();
-        }
-
-        private void buttonMonthly_Click(object sender, EventArgs e)
-        {
-            this.Text = "Logviewer - Monthly";
-            ReadLog(LoggerType.Monthly);
-        }
-
-        private void buttonWeekly_Click(object sender, EventArgs e)
-        {
-            this.Text = "Logviewer - Weekly";
-            ReadLog(LoggerType.Weekly);
-        }
-
-        private void buttonDaily_Click(object sender, EventArgs e)
-        {
-            this.Text = "Logviewer - Daily";
-            ReadLog(LoggerType.Daily);
+            return converted.ToString().Replace(",", ".") + " MB";
         }
 
         private void LogForm_FormClosing(object sender, FormClosingEventArgs e)
         {
             _mainForm.ShowLogButton.Enabled = true;
+        }
+
+        private void tabLogView_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var index = tabLogView.SelectedIndex;
+            //tabLogView.TabPages[0].Controls.Add(listLogViewer);
+            listLogViewer.Parent = tabLogView.TabPages[index];
+
+            switch (index)
+            {
+                case 0:
+                    this.Text = "Logviewer - Daily";
+                    ReadLog(LoggerType.Daily);
+                    break;
+                case 1:
+                    this.Text = "Logviewer - Weekly";
+                    ReadLog(LoggerType.Weekly);
+                    break;
+                case 2:
+                    this.Text = "Logviewer - Monthly";
+                    ReadLog(LoggerType.Monthly);
+                    break;
+            }
         }
     }
 
@@ -136,8 +141,8 @@ namespace NetworkMonitorAlerter.WindowsApp
 
             if (Column > 0)
             {
-                var itemA = Convert.ToDecimal(listviewX.SubItems[Column].Text);
-                var itemB = Convert.ToDecimal(listviewY.SubItems[Column].Text);
+                var itemA = Convert.ToDecimal(listviewX.SubItems[Column].Text.Replace(" MB", ""));
+                var itemB = Convert.ToDecimal(listviewY.SubItems[Column].Text.Replace(" MB", ""));
                 
                 if (itemA > itemB)
                     return Order == SortOrder.Ascending ? 1 : -1;
