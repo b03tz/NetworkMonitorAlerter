@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Runtime.Remoting;
 using Newtonsoft.Json;
 
 namespace NetworkMonitorAlerter.Library
@@ -21,10 +20,20 @@ namespace NetworkMonitorAlerter.Library
             
             if (!Directory.Exists(_logDirectory))
                 Directory.CreateDirectory(_logDirectory);
+            
+            var logFile = GetLogfileLocation();
+            if (!File.Exists(logFile))
+                File.WriteAllText(logFile, "{}");
+
+            _logFileContents = JsonConvert.DeserializeObject<LogFile>(File.ReadAllText(logFile)) ?? new LogFile();
         }
 
         public void WriteLogFile()
         {
+            // Don't write logfile before it's loaded
+            if (_logFileContents == null)
+                return;
+            
             var logFileLocation = GetLogfileLocation();
             File.WriteAllText(logFileLocation, JsonConvert.SerializeObject(_logFileContents, Formatting.Indented));
         }
@@ -35,15 +44,6 @@ namespace NetworkMonitorAlerter.Library
                 return;
             
             processName = processName.ToLower();
-            
-            if (_logFileContents == null)
-            {
-                var logFile = GetLogfileLocation();
-                if (!File.Exists(logFile))
-                    File.WriteAllText(logFile, "{}");
-
-                _logFileContents = JsonConvert.DeserializeObject<LogFile>(File.ReadAllText(logFile));
-            }
 
             var application = _logFileContents.Applications.FirstOrDefault(x => x.ApplicationName == processName);
             if (application == null)
