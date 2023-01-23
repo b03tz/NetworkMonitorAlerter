@@ -41,7 +41,8 @@ namespace NetworkMonitorAlerter.WindowsApp
 
             columnSorter = new ListViewColumnSorter();
             listLogViewer.ListViewItemSorter = columnSorter;
-            listLogViewer.ColumnClick += ListLogViewerOnColumnClick;
+            listLogViewer.ColumnClick += ListLogViewerOnColumnClick;            
+            this.Text = "Logviewer - Daily";
             ReadLog(LoggerType.Daily);
         }
 
