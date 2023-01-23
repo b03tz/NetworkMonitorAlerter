@@ -12,6 +12,7 @@ namespace NetworkMonitorAlerter.Library
         private readonly string _logDirectory = "logs";
         private LogFile _logFileContents = null;
         private LoggerType _type = LoggerType.Daily;
+        private string _logFile = "";
             
         public BandwidthLogger(LoggerType type)
         {
@@ -20,8 +21,17 @@ namespace NetworkMonitorAlerter.Library
             
             if (!Directory.Exists(_logDirectory))
                 Directory.CreateDirectory(_logDirectory);
-            
+
+            ReadLogFile();
+        }
+
+        private void ReadLogFile()
+        {
             var logFile = GetLogfileLocation();
+            if (logFile == _logFile)
+                return;
+
+            _logFile = logFile;
             if (!File.Exists(logFile))
                 File.WriteAllText(logFile, "{}");
 
@@ -42,6 +52,8 @@ namespace NetworkMonitorAlerter.Library
         {
             if (bandwidth == 0)
                 return;
+
+            ReadLogFile();
             
             processName = processName.ToLower();
 
