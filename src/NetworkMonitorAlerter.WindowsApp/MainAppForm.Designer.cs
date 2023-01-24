@@ -192,6 +192,7 @@
             this.listProcesses.TabIndex = 11;
             this.listProcesses.UseCompatibleStateImageBehavior = false;
             this.listProcesses.View = System.Windows.Forms.View.Details;
+            this.listProcesses.DoubleClick += new System.EventHandler(this.listProcesses_DoubleClick);
             // 
             // MainAppForm
             // 

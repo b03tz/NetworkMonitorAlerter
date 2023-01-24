@@ -337,5 +337,20 @@ namespace NetworkMonitorAlerter.WindowsApp
             buttonLogs.Enabled = false;
             new LogForm(_loggers, this).Show();
         }
+
+        private void listProcesses_DoubleClick(object sender, EventArgs e)
+        {
+            if (listProcesses.SelectedItems.Count == 0)
+                return;
+
+            var item = listProcesses.SelectedItems[0];
+            var process = Process.GetProcesses().FirstOrDefault(x => x.ProcessName == item.Text);
+
+            var message = $"Processname: {process.ProcessName}\n";
+            message += $"Started: {process.StartTime}\n";
+            message += $"Filename: {process.MainModule?.FileName}";
+
+            MessageBox.Show(message, $"Process info: {item.Text}");
+        }
     }
 }
