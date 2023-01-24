@@ -6,6 +6,7 @@ using System.Linq;
 using System.Timers;
 using System.Windows.Forms;
 using NetworkMonitorAlerter.Library;
+using NetworkMonitorAlerter.WindowsApp.Helpers;
 using Newtonsoft.Json;
 
 namespace NetworkMonitorAlerter.WindowsApp
@@ -18,17 +19,42 @@ namespace NetworkMonitorAlerter.WindowsApp
         private readonly List<string> _openForms = new List<string>();
         private readonly List<BandwidthLogger> _loggers = new List<BandwidthLogger>();
         public Button ShowLogButton => buttonLogs;
+        private ListViewColumnSorter _columnSorter;
 
         public MainAppForm()
         {
+            _columnSorter = new ListViewColumnSorter();
             InitializeComponent();
             InitializeMonitor();
-            
-            TextBoxLogger.TextBox = textBoxConsole;
         }
 
         public void InitializeMonitor()
         {
+            listProcesses.View = View.Details;
+            listProcesses.Columns.Add(new ColumnHeader
+            {
+                Text = "Process",
+                Name = "col1",
+                Width = 220,
+            });
+            listProcesses.Columns.Add(new ColumnHeader
+            {
+                Text = "Downloaded (MB)",
+                Name = "col2",
+                Width = 120
+            });
+            listProcesses.Columns.Add(new ColumnHeader
+            {
+                Text = "Uploaded (MB)",
+                Name = "col3",
+                Width = 120
+            });
+            listProcesses.ListViewItemSorter = _columnSorter;
+            listProcesses.ColumnClick += ListProcessesOnColumnClick;
+            _columnSorter.Column = 0;
+            _columnSorter.Order = SortOrder.Ascending;
+            listProcesses.Sort();
+            
             _loggers.Add(new BandwidthLogger(LoggerType.Daily));
             _loggers.Add(new BandwidthLogger(LoggerType.Weekly));
             _loggers.Add(new BandwidthLogger(LoggerType.Monthly));
@@ -37,7 +63,6 @@ namespace NetworkMonitorAlerter.WindowsApp
             timerLogger.Enabled = true;
             
             systemTrayIcon.Visible = true;
-            textBoxConsole.Text = "";
             GetConfiguration();
 
             if (Configuration.MonitorEveryXSeconds == 0)
@@ -54,6 +79,29 @@ namespace NetworkMonitorAlerter.WindowsApp
             timerData.Start();
         }
 
+        private void ListProcessesOnColumnClick(object sender, ColumnClickEventArgs e)
+        {
+            if (e.Column == _columnSorter.Column)
+            {
+                // Reverse the current sort direction for this column.
+                if (_columnSorter.Order == SortOrder.Ascending)
+                {
+                    _columnSorter.Order = SortOrder.Descending;
+                    listProcesses.Sort();
+                    return;
+                }
+
+                _columnSorter.Order = SortOrder.Ascending;
+                listProcesses.Sort();
+                return;
+            }
+
+            // Set the column number that is to be sorted; default to ascending.
+            _columnSorter.Column = e.Column;
+            _columnSorter.Order = SortOrder.Ascending;
+            listProcesses.Sort();
+        }
+        
         private void buttonSaveConfiguration_Click(object sender, EventArgs e)
         {
             Configuration.RollingWindowSeconds = int.Parse(textBoxConfigRollingWindowSeconds.Text);
@@ -129,7 +177,7 @@ namespace NetworkMonitorAlerter.WindowsApp
 
         private void MainAppForm_SizeChanged(object sender, EventArgs e)
         {
-            textBoxConsole.Height = Height - 205;
+            listProcesses.Height = Height - 205;
         }
 
         private void MainAppForm_Resize(object sender, EventArgs e)
@@ -198,19 +246,13 @@ namespace NetworkMonitorAlerter.WindowsApp
             if (_networkMonitor == null)
                 return;
             
-            textBoxConsole.Text = "";
             var performanceData = _networkMonitor.GetNetworkPerformanceData();
+            UpdateProcessList(performanceData);
             performanceData = performanceData.OrderBy(x => x.Process.ProcessName).ToList();
 
             labelMonitoringValue.Text = performanceData.Count + " processes";
             foreach (var data in performanceData)
             {
-                if (data.BytesReceived > 0)
-                {
-                    TextBoxLogger.Log(
-                        $"D: {TextBoxLogger.ToFixedString(data.TotalDownloadInWindow.ToString(), 10)}      U: {TextBoxLogger.ToFixedString(data.TotalUploadInWindow.ToString(), 10)} - {data.Process.ProcessName}");
-                }
-
                 var processName = data.Process.ProcessName.ToLower();
 
                 foreach (var logger in _loggers)
@@ -247,6 +289,47 @@ namespace NetworkMonitorAlerter.WindowsApp
                     k.Activate();
                 }
             }
+        }
+
+        private void UpdateProcessList(List<NetworkPerformanceData> performanceData)
+        {
+            if (!this.Visible)
+                return;
+
+            var added = false;
+            foreach (var data in performanceData)
+            {
+                if (data.BandwidthSent == 0 && data.BandwidthReceived == 0)
+                    continue;
+
+                var currentItem = GetListProcessItem(data.Process.ProcessName);
+                if (currentItem != null)
+                {
+                    currentItem.SubItems[1].Text = StringHelpers.ToMegabytes(data.BytesReceived);
+                    currentItem.SubItems[2].Text = StringHelpers.ToMegabytes(data.BytesSent);
+                    continue;
+                }
+
+                added = true;
+                var listItem = new ListViewItem(data.Process.ProcessName);
+                listItem.SubItems.Add(StringHelpers.ToMegabytes(data.BytesReceived));
+                listItem.SubItems.Add(StringHelpers.ToMegabytes(data.BytesSent));
+                listProcesses.Items.Add(listItem);
+            }
+
+            if (added)
+                listProcesses.Sort();
+        }
+
+        private ListViewItem? GetListProcessItem(string processName)
+        {
+            foreach (ListViewItem item in listProcesses.Items)
+            {
+                if (item.Text == processName)
+                    return item;
+            }
+
+            return null;
         }
 
         private void buttonLogs_Click(object sender, EventArgs e)

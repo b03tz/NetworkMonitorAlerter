@@ -31,7 +31,6 @@
         {
             this.components = new System.ComponentModel.Container();
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainAppForm));
-            this.textBoxConsole = new System.Windows.Forms.TextBox();
             this.timerData = new System.Timers.Timer();
             this.labelInfoMonitoring = new System.Windows.Forms.Label();
             this.labelMonitoringValue = new System.Windows.Forms.Label();
@@ -47,23 +46,11 @@
             this.systemTrayMenuQuit = new System.Windows.Forms.ToolStripMenuItem();
             this.timerLogger = new System.Timers.Timer();
             this.buttonLogs = new System.Windows.Forms.Button();
+            this.listProcesses = new System.Windows.Forms.ListView();
             ((System.ComponentModel.ISupportInitialize) (this.timerData)).BeginInit();
             this.systemTrayMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize) (this.timerLogger)).BeginInit();
             this.SuspendLayout();
-            // 
-            // textBoxConsole
-            // 
-            this.textBoxConsole.Font = new System.Drawing.Font("Lucida Console", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.textBoxConsole.Location = new System.Drawing.Point(12, 153);
-            this.textBoxConsole.Multiline = true;
-            this.textBoxConsole.Name = "textBoxConsole";
-            this.textBoxConsole.ReadOnly = true;
-            this.textBoxConsole.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
-            this.textBoxConsole.Size = new System.Drawing.Size(491, 250);
-            this.textBoxConsole.TabIndex = 0;
-            this.textBoxConsole.Text = "Console with a very long line of test, a very long line of test, a very long line" + " of test, a very long line of test, a very long line of test, a very long line o" + "f test, ";
-            this.textBoxConsole.WordWrap = false;
             // 
             // timerData
             // 
@@ -195,11 +182,23 @@
             this.buttonLogs.UseVisualStyleBackColor = false;
             this.buttonLogs.Click += new System.EventHandler(this.buttonLogs_Click);
             // 
+            // listProcesses
+            // 
+            this.listProcesses.FullRowSelect = true;
+            this.listProcesses.GridLines = true;
+            this.listProcesses.Location = new System.Drawing.Point(12, 153);
+            this.listProcesses.Name = "listProcesses";
+            this.listProcesses.Size = new System.Drawing.Size(491, 253);
+            this.listProcesses.TabIndex = 11;
+            this.listProcesses.UseCompatibleStateImageBehavior = false;
+            this.listProcesses.View = System.Windows.Forms.View.Details;
+            // 
             // MainAppForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(515, 418);
+            this.Controls.Add(this.listProcesses);
             this.Controls.Add(this.buttonLogs);
             this.Controls.Add(this.buttonSaveConfiguration);
             this.Controls.Add(this.label3);
@@ -210,7 +209,6 @@
             this.Controls.Add(this.textBoxConfigRollingWindowSeconds);
             this.Controls.Add(this.labelMonitoringValue);
             this.Controls.Add(this.labelInfoMonitoring);
-            this.Controls.Add(this.textBoxConsole);
             this.Icon = ((System.Drawing.Icon) (resources.GetObject("$this.Icon")));
             this.Name = "MainAppForm";
             this.Text = "Network Monitor";
@@ -223,6 +221,8 @@
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+
+        private System.Windows.Forms.ListView listProcesses;
 
         private System.Windows.Forms.Button buttonLogs;
 
@@ -250,8 +250,6 @@
         private System.Windows.Forms.Label labelInfoMonitoring;
 
         private System.Timers.Timer timerData;
-
-        private System.Windows.Forms.TextBox textBoxConsole;
 
         #endregion
     }

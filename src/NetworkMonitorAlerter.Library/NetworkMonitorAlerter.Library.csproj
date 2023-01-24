@@ -65,7 +65,6 @@
         <Compile Include="Configuration.cs" />
         <Compile Include="BandwidthLogger.cs" />
         <Compile Include="DownloadOrUpload.cs" />
-        <Compile Include="TextBoxLogger.cs" />
         <Compile Include="NetworkMonitor.cs" />
         <Compile Include="Properties\AssemblyInfo.cs" />
     </ItemGroup>

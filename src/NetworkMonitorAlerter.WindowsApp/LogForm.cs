@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 using NetworkMonitorAlerter.Library;
+using NetworkMonitorAlerter.WindowsApp.Helpers;
 
 namespace NetworkMonitorAlerter.WindowsApp
 {
@@ -76,17 +77,10 @@ namespace NetworkMonitorAlerter.WindowsApp
             foreach (var application in logger.GetLog().Applications)
             {
                 var listItem = new ListViewItem(application.ApplicationName);
-                listItem.SubItems.Add(ToMegabytes(application.TotalBytesDownloaded));
-                listItem.SubItems.Add(ToMegabytes(application.TotalBytesUploaded));
+                listItem.SubItems.Add(StringHelpers.ToMegabytes(application.TotalBytesDownloaded));
+                listItem.SubItems.Add(StringHelpers.ToMegabytes(application.TotalBytesUploaded));
                 listLogViewer.Items.Add(listItem);
             }
-        }
-
-        private string ToMegabytes(long totalBytes)
-        {
-            var mb = Convert.ToDecimal(totalBytes);
-            var converted = Math.Round(mb / 1024 / 1024, 2, MidpointRounding.ToEven);
-            return converted.ToString().Replace(",", ".") + " MB";
         }
 
         private void LogForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -115,64 +109,6 @@ namespace NetworkMonitorAlerter.WindowsApp
                     ReadLog(LoggerType.Monthly);
                     break;
             }
-        }
-    }
-
-    public class ListViewColumnSorter : IComparer
-    {
-        public int Column { get; set; }
-        public SortOrder Order { get; set; }
-        private CaseInsensitiveComparer _objectCompare;
-        public ListViewColumnSorter()
-        {
-            Column = 0;
-            Order = SortOrder.None;
-            _objectCompare = new CaseInsensitiveComparer();
-        }
-
-        public int Compare(object x, object y)
-        {
-            int compareResult;
-            ListViewItem listviewX, listviewY;
-
-            // Cast the objects to be compared to ListViewItem objects
-            listviewX = (ListViewItem) x;
-            listviewY = (ListViewItem) y;
-
-            if (Column > 0)
-            {
-                var itemA = Convert.ToDecimal(listviewX.SubItems[Column].Text.Replace(" MB", ""));
-                var itemB = Convert.ToDecimal(listviewY.SubItems[Column].Text.Replace(" MB", ""));
-                
-                if (itemA > itemB)
-                    return Order == SortOrder.Ascending ? 1 : -1;
-                if (itemA < itemB)
-                    return Order == SortOrder.Ascending ? -1 : 1;
-
-                return 0;
-            }
-            
-            var a = listviewX.SubItems[Column].Text;
-            var b = listviewY.SubItems[Column].Text;
-            
-            // Compare the two items
-            compareResult = _objectCompare.Compare(a, b);
-
-            // Calculate correct return value based on object comparison
-            if (Order == SortOrder.Ascending)
-            {
-                // Ascending sort is selected, return normal result of compare operation
-                return compareResult;
-            }
-
-            if (Order == SortOrder.Descending)
-            {
-                // Descending sort is selected, return negative result of compare operation
-                return (-compareResult);
-            }
-
-            // Return '0' to indicate they are equal
-            return 0;
         }
     }
 }

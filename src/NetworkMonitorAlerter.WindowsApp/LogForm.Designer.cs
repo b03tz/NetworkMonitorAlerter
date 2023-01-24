@@ -43,6 +43,8 @@ namespace NetworkMonitorAlerter.WindowsApp
             // 
             // listLogViewer
             // 
+            this.listLogViewer.FullRowSelect = true;
+            this.listLogViewer.GridLines = true;
             this.listLogViewer.Location = new System.Drawing.Point(0, 0);
             this.listLogViewer.Name = "listLogViewer";
             this.listLogViewer.Size = new System.Drawing.Size(769, 400);
