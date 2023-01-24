@@ -37,6 +37,7 @@ namespace NetworkMonitorAlerter.Library
                 return;
 
             _logFile = logFile;
+            _logFileContents = new LogFile();
             if (!File.Exists(logFile))
                 File.WriteAllText(logFile, "{}");
 
