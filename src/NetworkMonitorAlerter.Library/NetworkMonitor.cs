@@ -140,16 +140,6 @@ namespace NetworkMonitorAlerter.Library
                 {
                     _mEtwSession.EnableKernelProvider(KernelTraceEventParser.Keywords.NetworkTCPIP);
                     _mEtwSession.EnableProvider("Microsoft-Windows-TCPIP");
-                    _mEtwSession.Source.Kernel.TcpIpRecv += data =>
-                    {
-                        lock (_processCounters)
-                        {
-                            if (!_processCounters.ContainsKey(GetProcessName(data.ProcessID))) return;
-                            
-                            _processCounters[GetProcessName(data.ProcessID)].Received += Convert.ToInt64(data.size);
-                        }
-                    };
-
                     _mEtwSession.Source.Kernel.TcpIpSend += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
                     _mEtwSession.Source.Kernel.TcpIpRecv += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
                     _mEtwSession.Source.Kernel.TcpIpSendIPV6 += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);

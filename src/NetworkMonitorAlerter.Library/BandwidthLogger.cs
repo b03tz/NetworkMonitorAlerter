@@ -10,8 +10,8 @@ namespace NetworkMonitorAlerter.Library
     public class BandwidthLogger
     {
         private readonly string _logDirectory = "logs";
-        private LogFile _logFileContents = null;
-        public readonly LoggerType Type = LoggerType.Daily;
+        private LogFile _logFileContents;
+        public readonly LoggerType Type;
         private string _logFile = "";
         
         public BandwidthLogger(LoggerType type)
@@ -24,11 +24,8 @@ namespace NetworkMonitorAlerter.Library
 
             ReadLogFile();
         }
-        
-        public LogFile GetLog()
-        {
-            return _logFileContents;
-        }
+
+        public LogFile GetLog() => _logFileContents;
 
         private void ReadLogFile()
         {
@@ -39,9 +36,25 @@ namespace NetworkMonitorAlerter.Library
             _logFile = logFile;
             _logFileContents = new LogFile();
             if (!File.Exists(logFile))
-                File.WriteAllText(logFile, "{}");
+            {
+                try
+                {
+                    File.WriteAllText(logFile, "{}");
+                }
+                catch
+                {
+                    // Ignored
+                }
+            }
 
-            _logFileContents = JsonConvert.DeserializeObject<LogFile>(File.ReadAllText(logFile)) ?? new LogFile();
+            try
+            {
+                _logFileContents = JsonConvert.DeserializeObject<LogFile>(File.ReadAllText(logFile)) ?? new LogFile();
+            }
+            catch
+            {
+                _logFileContents = new LogFile();
+            }
         }
 
         public void WriteLogFile()

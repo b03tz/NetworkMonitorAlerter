@@ -27,29 +27,13 @@ namespace NetworkMonitorAlerter.WindowsApp
             TextBoxLogger.TextBox = textBoxConsole;
         }
 
-        private void GetConfiguration()
-        {
-            Configuration = new Configuration();
-            if (!File.Exists(ConfigFile))
-            {
-                File.Create(ConfigFile);
-                WriteConfiguration();
-            }
-
-            var configContent = File.ReadAllText(ConfigFile);
-            Configuration = JsonConvert.DeserializeObject<Configuration>(configContent) ?? new Configuration();
-
-            if (Configuration == null)
-                throw new Exception("Configuration file could not be loaded");
-        }
-
         public void InitializeMonitor()
         {
             _loggers.Add(new BandwidthLogger(LoggerType.Daily));
             _loggers.Add(new BandwidthLogger(LoggerType.Weekly));
             _loggers.Add(new BandwidthLogger(LoggerType.Monthly));
             
-            timerLogger.Interval = (3 * 60);
+            timerLogger.Interval = 3 * 60;
             timerLogger.Enabled = true;
             
             systemTrayIcon.Visible = true;
@@ -70,6 +54,145 @@ namespace NetworkMonitorAlerter.WindowsApp
             timerData.Start();
         }
 
+        private void buttonSaveConfiguration_Click(object sender, EventArgs e)
+        {
+            Configuration.RollingWindowSeconds = int.Parse(textBoxConfigRollingWindowSeconds.Text);
+            Configuration.MaxMbDownloadInWindow = int.Parse(textBoxMaxMbDownloadInWindow.Text);
+            Configuration.MaxMbUploadInWindow = int.Parse(textBoxMaxMbUploadInWindow.Text);
+            WriteConfiguration();
+        }
+
+        public void WhitelistApplication(Process process, DateTimeOffset until, DownloadOrUpload type)
+        {
+            var configurationApplication =
+                Configuration.Applications.FirstOrDefault(x =>
+                    x.ProcessName.ToLower() == process.ProcessName.ToLower());
+
+            if (configurationApplication == null)
+                configurationApplication = new NetworkApplication
+                {
+                    ApplicationName = GetProcessTitle(process),
+                    ProcessName = process.ProcessName.ToLower(),
+                    DownloadWhitelistedUntil = DateTimeOffset.Now,
+                    UploadWhitelistedUntil = DateTimeOffset.Now
+                };
+
+            switch (type)
+            {
+                case DownloadOrUpload.Download:
+                    configurationApplication.DownloadWhitelistedUntil = until;
+                    break;
+                case DownloadOrUpload.Upload:
+                    configurationApplication.UploadWhitelistedUntil = until;
+                    break;
+            }
+
+            Configuration.Applications.RemoveAll(x => x.ProcessName == process.ProcessName.ToLower());
+            Configuration.Applications.Add(configurationApplication);
+
+            WriteConfiguration();
+        }
+
+        private void WriteConfiguration()
+        {
+            try
+            {
+                File.WriteAllText(ConfigFile, JsonConvert.SerializeObject(Configuration, Formatting.Indented));
+            }
+            catch 
+            {
+                MessageBox.Show("Configuration could not be written, try again!", "Failed");
+            }
+        }
+
+        private bool IsApplicationWhitelisted(Process process, DownloadOrUpload type)
+        {
+            var configurationApplication =
+                Configuration.Applications.FirstOrDefault(x =>
+                    x.ProcessName == process.ProcessName.ToLower());
+
+            if (configurationApplication == null)
+                return false;
+
+            if (type == DownloadOrUpload.Download &&
+                configurationApplication.DownloadWhitelistedUntil > DateTimeOffset.Now)
+                return true;
+
+            if (type == DownloadOrUpload.Upload &&
+                configurationApplication.UploadWhitelistedUntil > DateTimeOffset.Now)
+                return true;
+
+            return false;
+        }
+
+        public string GetProcessTitle(Process process) => process.ProcessName;
+
+        private void MainAppForm_SizeChanged(object sender, EventArgs e)
+        {
+            textBoxConsole.Height = Height - 205;
+        }
+
+        private void MainAppForm_Resize(object sender, EventArgs e)
+        {
+            if (WindowState != FormWindowState.Minimized) 
+                return;
+            
+            Hide();
+            systemTrayIcon.Visible = true;
+        }
+
+        private void systemTrayIcon_DoubleClick(object sender, EventArgs e)
+        {
+            Show();
+            WindowState = FormWindowState.Normal;
+        }
+
+        private void MainAppForm_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            if (e.CloseReason != CloseReason.UserClosing) 
+                return;
+            
+            systemTrayIcon.Visible = true;
+            Hide();
+            e.Cancel = true;
+        }
+
+        private void systemTrayMenuQuit_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void timerLogger_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            try
+            {
+                foreach (var logger in _loggers)
+                {
+                    logger.WriteLogFile();
+                }
+            }
+            catch
+            {
+                // Ignored
+            }
+        }
+        
+        private void GetConfiguration()
+        {
+            Configuration = new Configuration();
+            if (!File.Exists(ConfigFile))
+            {
+                File.Create(ConfigFile);
+                WriteConfiguration();
+            }
+
+            var configContent = File.ReadAllText(ConfigFile);
+            Configuration = JsonConvert.DeserializeObject<Configuration>(configContent) ?? new Configuration();
+
+            if (Configuration == null)
+                throw new Exception("Configuration file could not be loaded");
+        }
+        
         private void timerData_Elapsed(object sender, ElapsedEventArgs e)
         {
             if (_networkMonitor == null)
@@ -124,116 +247,6 @@ namespace NetworkMonitorAlerter.WindowsApp
                     k.Activate();
                 }
             }
-        }
-
-        private void buttonSaveConfiguration_Click(object sender, EventArgs e)
-        {
-            Configuration.RollingWindowSeconds = int.Parse(textBoxConfigRollingWindowSeconds.Text);
-            Configuration.MaxMbDownloadInWindow = int.Parse(textBoxMaxMbDownloadInWindow.Text);
-            Configuration.MaxMbUploadInWindow = int.Parse(textBoxMaxMbUploadInWindow.Text);
-            WriteConfiguration();
-        }
-
-        public void WhitelistApplication(Process process, DateTimeOffset until, DownloadOrUpload type)
-        {
-            var configurationApplication =
-                Configuration.Applications.FirstOrDefault(x =>
-                    x.ProcessName.ToLower() == process.ProcessName.ToLower());
-
-            if (configurationApplication == null)
-                configurationApplication = new NetworkApplication
-                {
-                    ApplicationName = GetProcessTitle(process),
-                    ProcessName = process.ProcessName.ToLower(),
-                    DownloadWhitelistedUntil = DateTimeOffset.Now,
-                    UploadWhitelistedUntil = DateTimeOffset.Now
-                };
-
-            switch (type)
-            {
-                case DownloadOrUpload.Download:
-                    configurationApplication.DownloadWhitelistedUntil = until;
-                    break;
-                case DownloadOrUpload.Upload:
-                    configurationApplication.UploadWhitelistedUntil = until;
-                    break;
-            }
-
-            Configuration.Applications.RemoveAll(x => x.ProcessName == process.ProcessName.ToLower());
-            Configuration.Applications.Add(configurationApplication);
-
-            WriteConfiguration();
-        }
-
-        private void WriteConfiguration()
-        {
-            File.WriteAllText(ConfigFile, JsonConvert.SerializeObject(Configuration, Formatting.Indented));
-        }
-
-        private bool IsApplicationWhitelisted(Process process, DownloadOrUpload type)
-        {
-            var configurationApplication =
-                Configuration.Applications.FirstOrDefault(x =>
-                    x.ProcessName == process.ProcessName.ToLower());
-
-            if (configurationApplication == null)
-                return false;
-
-            if (type == DownloadOrUpload.Download &&
-                configurationApplication.DownloadWhitelistedUntil > DateTimeOffset.Now)
-                return true;
-
-            if (type == DownloadOrUpload.Upload &&
-                configurationApplication.UploadWhitelistedUntil > DateTimeOffset.Now)
-                return true;
-
-            return false;
-        }
-
-        public string GetProcessTitle(Process process)
-        {
-            return process.ProcessName;
-        }
-
-        private void MainAppForm_SizeChanged(object sender, EventArgs e)
-        {
-            textBoxConsole.Height = Height - 205;
-        }
-
-        private void MainAppForm_Resize(object sender, EventArgs e)
-        {
-            if (WindowState == FormWindowState.Minimized)
-            {
-                Hide();
-                systemTrayIcon.Visible = true;
-            }
-        }
-
-        private void systemTrayIcon_DoubleClick(object sender, EventArgs e)
-        {
-            Show();
-            WindowState = FormWindowState.Normal;
-        }
-
-        private void MainAppForm_FormClosing(object sender, FormClosingEventArgs e)
-        {
-            if (e.CloseReason != CloseReason.UserClosing) 
-                return;
-            
-            systemTrayIcon.Visible = true;
-            Hide();
-            e.Cancel = true;
-        }
-
-        private void systemTrayMenuQuit_Click(object sender, EventArgs e)
-        {
-            Application.Exit();
-        }
-
-        private void timerLogger_Elapsed(object sender, ElapsedEventArgs e)
-        {
-            foreach(var logger in _loggers)
-                logger.WriteLogFile();
         }
 
         private void buttonLogs_Click(object sender, EventArgs e)
