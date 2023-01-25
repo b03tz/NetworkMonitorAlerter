@@ -391,7 +391,7 @@ namespace NetworkMonitorAlerter.WindowsApp
                         uploadStart = data.Bytes;
                         continue;
                     }
-                    form.AddValue(data.Bytes, DownloadOrUpload.Upload);
+                    form.AddValue(data.Bytes - uploadStart, DownloadOrUpload.Upload);
                     uploadStart = data.Bytes;
                 }
             }
