@@ -19,7 +19,7 @@ namespace NetworkMonitorAlerter.Library
         private readonly Dictionary<string, NetworkPerformanceData> _monitors =
             new Dictionary<string, NetworkPerformanceData>();
 
-        private readonly List<Process> _processes = new List<Process>();
+        private readonly List<string> _monitoredProcesses = new List<string>();
         private readonly HashSet<Process> _allProcesses = new HashSet<Process>();
         private readonly bool _isContinuous;
         private readonly int _updateProcessInterval;
@@ -63,7 +63,7 @@ namespace NetworkMonitorAlerter.Library
 
         private string GetProcessName(int processId)
         {
-            lock (_processes)
+            lock (_allProcesses)
             {
                 return GetProcessName(_allProcesses.FirstOrDefault(x => x.Id == processId));
             }
@@ -74,20 +74,22 @@ namespace NetworkMonitorAlerter.Library
             if (process == null)
                 throw new ArgumentNullException(nameof(process));
 
+            var processName = GetProcessName(process);
+            
             lock (_processCounters)
             {
-                if (_processCounters.ContainsKey(GetProcessName(process)))
+                if (_processCounters.ContainsKey(processName))
                     return;
             }
 
-            lock (_processes)
+            lock (_monitoredProcesses)
             {
-                _processes.Add(process);
+                _monitoredProcesses.Add(processName);
             }
 
             lock (_processCounters)
             {
-                _processCounters.Add(GetProcessName(process), new Counters
+                _processCounters.Add(processName, new Counters
                 {
                     Process = process,
                     Received = 0,
@@ -97,7 +99,7 @@ namespace NetworkMonitorAlerter.Library
 
             lock (_monitors)
             {
-                _monitors.Add(GetProcessName(process), new NetworkPerformanceData
+                _monitors.Add(processName, new NetworkPerformanceData
                 {
                     Process = process
                 });
@@ -106,9 +108,9 @@ namespace NetworkMonitorAlerter.Library
 
         public void RemoveProcess(string processName)
         {
-            lock (_processes)
+            lock (_monitoredProcesses)
             {
-                _processes.RemoveAll(x => GetProcessName(x) == processName);
+                _monitoredProcesses.RemoveAll(x => x == processName);
             }
 
             lock (_processCounters)
@@ -199,6 +201,8 @@ namespace NetworkMonitorAlerter.Library
                 }
             }
 
+            CleanLogData();
+
             if (!_isContinuous)
                 lock (_monitors)
                 {
@@ -210,17 +214,19 @@ namespace NetworkMonitorAlerter.Library
 
             lock (_monitors)
             {
-                CleanLogData();
                 return _monitors.Values.ToList();
             }
         }
 
         private void CleanLogData()
         {
-            foreach (var monitor in _monitors.Values)
+            lock (_monitors)
             {
-                monitor.BytesReceivedLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
-                monitor.BytesSentLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
+                foreach (var monitor in _monitors.Values)
+                {
+                    monitor.BytesReceivedLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
+                    monitor.BytesSentLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
+                }
             }
         }
 
@@ -235,20 +241,18 @@ namespace NetworkMonitorAlerter.Library
                     _allProcesses.Add(p);
             }
 
-            lock (_processes)
+            lock (_monitoredProcesses)
             {
                 foreach (var process in processes)
                 {
-                    if (_processes.Any(x => GetProcessName(x) == GetProcessName(process)))
+                    if (_monitoredProcesses.Contains(GetProcessName(process)))
                         continue;
 
                     AddProcess(process);
                 }
                 
-                var processesToRemove = _processes
-                    .Where(x => processes.All(p => GetProcessName(p) != GetProcessName(x)))
-                    .Select(GetProcessName)
-                    .Distinct()
+                var processesToRemove = _monitoredProcesses
+                    .Where(x => processes.All(p => x != GetProcessName(p)))
                     .ToList();
                 
                 foreach (var processName in processesToRemove)

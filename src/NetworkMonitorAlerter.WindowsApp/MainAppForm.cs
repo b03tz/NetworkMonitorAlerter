@@ -20,6 +20,8 @@ namespace NetworkMonitorAlerter.WindowsApp
         private readonly List<BandwidthLogger> _loggers = new List<BandwidthLogger>();
         public Button ShowLogButton => buttonLogs;
         private ListViewColumnSorter _columnSorter;
+        public readonly List<LiveProcessView> LiveProcessViews = new List<LiveProcessView>();
+        private List<NetworkPerformanceData> _latestNetworkPerformanceData = new List<NetworkPerformanceData>();
 
         public MainAppForm()
         {
@@ -246,20 +248,14 @@ namespace NetworkMonitorAlerter.WindowsApp
             if (_networkMonitor == null)
                 return;
             
-            var performanceData = _networkMonitor.GetNetworkPerformanceData();
-            UpdateProcessList(performanceData);
-            performanceData = performanceData.OrderBy(x => x.Process.ProcessName).ToList();
+            _latestNetworkPerformanceData = _networkMonitor.GetNetworkPerformanceData();
+            UpdateProcessList(_latestNetworkPerformanceData);
+            _latestNetworkPerformanceData = _latestNetworkPerformanceData.OrderBy(x => x.Process.ProcessName).ToList();
 
-            labelMonitoringValue.Text = performanceData.Count + " processes";
-            foreach (var data in performanceData)
+            labelMonitoringValue.Text = _latestNetworkPerformanceData.Count + " processes";
+            foreach (var data in _latestNetworkPerformanceData)
             {
-                var processName = data.Process.ProcessName.ToLower();
-
-                foreach (var logger in _loggers)
-                {
-                    logger.AddBandwidth(processName, data.BandwidthReceived, DownloadOrUpload.Download);
-                    logger.AddBandwidth(processName, data.BandwidthSent, DownloadOrUpload.Upload);
-                }
+                var processName = GetProcessTitle(data.Process);
         
                 var uploadFormName = processName + "_u";
                 var downloadFormName = processName + "_d";
@@ -287,6 +283,19 @@ namespace NetworkMonitorAlerter.WindowsApp
                     k.Show();
                     k.WindowState = FormWindowState.Normal;
                     k.Activate();
+                }
+                
+                foreach (var logger in _loggers)
+                {
+                    logger.AddBandwidth(processName, data.BandwidthReceived, DownloadOrUpload.Download);
+                    logger.AddBandwidth(processName, data.BandwidthSent, DownloadOrUpload.Upload);
+                }
+
+                var liveView = LiveProcessViews.FirstOrDefault(x => x.ProcessName == processName);
+                if (liveView != null)
+                {
+                    liveView.AddValue(data.BandwidthReceived, DownloadOrUpload.Download);
+                    liveView.AddValue(data.BandwidthSent, DownloadOrUpload.Upload);
                 }
             }
         }
@@ -346,11 +355,49 @@ namespace NetworkMonitorAlerter.WindowsApp
             var item = listProcesses.SelectedItems[0];
             var process = Process.GetProcesses().FirstOrDefault(x => x.ProcessName == item.Text);
 
-            var message = $"Processname: {process.ProcessName}\n";
-            message += $"Started: {process.StartTime}\n";
-            message += $"Filename: {process.MainModule?.FileName}";
+            if (process == null)
+            {
+                MessageBox.Show($"Could not find process: {process}. It might have quit?", "Process not found");
+                return;
+            }
+            
+            var form = new LiveProcessView(this, GetProcessTitle(process));
+            form.WindowState = FormWindowState.Minimized;
+            form.Show();
+            form.WindowState = FormWindowState.Normal;
 
-            MessageBox.Show(message, $"Process info: {item.Text}");
+            var performanceData = _latestNetworkPerformanceData
+                .FirstOrDefault(x => GetProcessTitle(x.Process) == GetProcessTitle(process));
+            
+            if (performanceData != null)
+            {
+                long downloadStart = 0;
+                long uploadStart = 0;
+                foreach (var data in performanceData.BytesReceivedLog)
+                {
+                    if (downloadStart == 0)
+                    {
+                        downloadStart = data.Bytes;
+                        continue;
+                    }
+                    form.AddValue(data.Bytes - downloadStart, DownloadOrUpload.Download);
+                    downloadStart = data.Bytes;
+                }
+            
+                foreach (var data in performanceData.BytesSentLog)
+                {
+                    if (uploadStart == 0)
+                    {
+                        uploadStart = data.Bytes;
+                        continue;
+                    }
+                    form.AddValue(data.Bytes, DownloadOrUpload.Upload);
+                    uploadStart = data.Bytes;
+                }
+            }
+            
+            LiveProcessViews.Add(form);
+            form.Show();
         }
     }
 }
