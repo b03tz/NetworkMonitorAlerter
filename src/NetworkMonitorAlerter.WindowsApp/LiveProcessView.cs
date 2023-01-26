@@ -15,6 +15,8 @@ namespace NetworkMonitorAlerter.WindowsApp
         private readonly CartesianChart _chart;
         private readonly ChartValues<decimal> _uploadValues = new ChartValues<decimal>();
         private readonly ChartValues<decimal> _downloadValues = new ChartValues<decimal>();
+        private readonly ChartValues<decimal> _uploadValuesNetwork = new ChartValues<decimal>();
+        private readonly ChartValues<decimal> _downloadValuesNetwork = new ChartValues<decimal>();
 
         public LiveProcessView(MainAppForm mainAppForm, string processName)
         {
@@ -41,13 +43,23 @@ namespace NetworkMonitorAlerter.WindowsApp
             {
                 new LineSeries
                 {
-                    Title = "Download",
+                    Title = "Download internet",
                     Values = _downloadValues,
                 },
                 new LineSeries
                 {
-                    Title = "Upload",
+                    Title = "Upload internet",
                     Values = _uploadValues
+                },
+                new LineSeries
+                {
+                    Title = "Download local",
+                    Values = _downloadValuesNetwork
+                },
+                new LineSeries
+                {
+                    Title = "Upload local",
+                    Values = _uploadValuesNetwork
                 },
             };
 
@@ -69,6 +81,18 @@ namespace NetworkMonitorAlerter.WindowsApp
             }
             
             _uploadValues.Add(kb);
+        }
+        
+        public void AddValueNetwork(long bytes, DownloadOrUpload type)
+        {
+            var kb = Math.Round(Convert.ToDecimal(bytes) / 1024, 2);
+            if (type == DownloadOrUpload.Download)
+            {
+                _downloadValuesNetwork.Add(kb);
+                return;
+            }
+            
+            _uploadValuesNetwork.Add(kb);
         }
 
         private void LiveProcessView_FormClosing(object sender, FormClosingEventArgs e)

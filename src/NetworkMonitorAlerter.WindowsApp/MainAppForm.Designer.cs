@@ -62,7 +62,7 @@
             // 
             this.labelInfoMonitoring.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.labelInfoMonitoring.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.labelInfoMonitoring.Location = new System.Drawing.Point(12, 120);
+            this.labelInfoMonitoring.Location = new System.Drawing.Point(12, 95);
             this.labelInfoMonitoring.Name = "labelInfoMonitoring";
             this.labelInfoMonitoring.Size = new System.Drawing.Size(142, 21);
             this.labelInfoMonitoring.TabIndex = 1;
@@ -73,24 +73,24 @@
             // 
             this.labelMonitoringValue.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.labelMonitoringValue.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.labelMonitoringValue.Location = new System.Drawing.Point(153, 120);
+            this.labelMonitoringValue.Location = new System.Drawing.Point(153, 95);
             this.labelMonitoringValue.Name = "labelMonitoringValue";
-            this.labelMonitoringValue.Size = new System.Drawing.Size(248, 21);
+            this.labelMonitoringValue.Size = new System.Drawing.Size(423, 21);
             this.labelMonitoringValue.TabIndex = 2;
             this.labelMonitoringValue.Text = "0 processes";
             this.labelMonitoringValue.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
             // 
             // textBoxConfigRollingWindowSeconds
             // 
-            this.textBoxConfigRollingWindowSeconds.Location = new System.Drawing.Point(264, 12);
+            this.textBoxConfigRollingWindowSeconds.Location = new System.Drawing.Point(506, 13);
             this.textBoxConfigRollingWindowSeconds.Name = "textBoxConfigRollingWindowSeconds";
-            this.textBoxConfigRollingWindowSeconds.Size = new System.Drawing.Size(137, 20);
+            this.textBoxConfigRollingWindowSeconds.Size = new System.Drawing.Size(70, 20);
             this.textBoxConfigRollingWindowSeconds.TabIndex = 3;
             // 
             // label1
             // 
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.label1.Location = new System.Drawing.Point(12, 12);
+            this.label1.Location = new System.Drawing.Point(254, 13);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(246, 21);
             this.label1.TabIndex = 4;
@@ -100,7 +100,7 @@
             // label2
             // 
             this.label2.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.label2.Location = new System.Drawing.Point(12, 38);
+            this.label2.Location = new System.Drawing.Point(254, 39);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(246, 21);
             this.label2.TabIndex = 6;
@@ -109,15 +109,15 @@
             // 
             // textBoxMaxMbDownloadInWindow
             // 
-            this.textBoxMaxMbDownloadInWindow.Location = new System.Drawing.Point(264, 38);
+            this.textBoxMaxMbDownloadInWindow.Location = new System.Drawing.Point(506, 39);
             this.textBoxMaxMbDownloadInWindow.Name = "textBoxMaxMbDownloadInWindow";
-            this.textBoxMaxMbDownloadInWindow.Size = new System.Drawing.Size(137, 20);
+            this.textBoxMaxMbDownloadInWindow.Size = new System.Drawing.Size(70, 20);
             this.textBoxMaxMbDownloadInWindow.TabIndex = 5;
             // 
             // label3
             // 
             this.label3.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.label3.Location = new System.Drawing.Point(12, 64);
+            this.label3.Location = new System.Drawing.Point(254, 65);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(246, 21);
             this.label3.TabIndex = 8;
@@ -126,15 +126,15 @@
             // 
             // textBoxMaxMbUploadInWindow
             // 
-            this.textBoxMaxMbUploadInWindow.Location = new System.Drawing.Point(264, 64);
+            this.textBoxMaxMbUploadInWindow.Location = new System.Drawing.Point(506, 65);
             this.textBoxMaxMbUploadInWindow.Name = "textBoxMaxMbUploadInWindow";
-            this.textBoxMaxMbUploadInWindow.Size = new System.Drawing.Size(137, 20);
+            this.textBoxMaxMbUploadInWindow.Size = new System.Drawing.Size(70, 20);
             this.textBoxMaxMbUploadInWindow.TabIndex = 7;
             // 
             // buttonSaveConfiguration
             // 
             this.buttonSaveConfiguration.ForeColor = System.Drawing.SystemColors.ActiveCaptionText;
-            this.buttonSaveConfiguration.Location = new System.Drawing.Point(407, 12);
+            this.buttonSaveConfiguration.Location = new System.Drawing.Point(582, 13);
             this.buttonSaveConfiguration.Name = "buttonSaveConfiguration";
             this.buttonSaveConfiguration.Size = new System.Drawing.Size(96, 72);
             this.buttonSaveConfiguration.TabIndex = 9;
@@ -174,7 +174,7 @@
             // 
             this.buttonLogs.BackColor = System.Drawing.Color.MediumTurquoise;
             this.buttonLogs.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte) (0)));
-            this.buttonLogs.Location = new System.Drawing.Point(407, 118);
+            this.buttonLogs.Location = new System.Drawing.Point(582, 94);
             this.buttonLogs.Name = "buttonLogs";
             this.buttonLogs.Size = new System.Drawing.Size(96, 23);
             this.buttonLogs.TabIndex = 10;
@@ -186,9 +186,9 @@
             // 
             this.listProcesses.FullRowSelect = true;
             this.listProcesses.GridLines = true;
-            this.listProcesses.Location = new System.Drawing.Point(12, 153);
+            this.listProcesses.Location = new System.Drawing.Point(12, 123);
             this.listProcesses.Name = "listProcesses";
-            this.listProcesses.Size = new System.Drawing.Size(491, 253);
+            this.listProcesses.Size = new System.Drawing.Size(666, 418);
             this.listProcesses.TabIndex = 11;
             this.listProcesses.UseCompatibleStateImageBehavior = false;
             this.listProcesses.View = System.Windows.Forms.View.Details;
@@ -198,7 +198,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(515, 418);
+            this.ClientSize = new System.Drawing.Size(690, 553);
             this.Controls.Add(this.listProcesses);
             this.Controls.Add(this.buttonLogs);
             this.Controls.Add(this.buttonSaveConfiguration);

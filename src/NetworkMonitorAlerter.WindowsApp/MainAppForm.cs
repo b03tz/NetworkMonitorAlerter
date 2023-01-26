@@ -33,23 +33,40 @@ namespace NetworkMonitorAlerter.WindowsApp
         public void InitializeMonitor()
         {
             listProcesses.View = View.Details;
+            listProcesses.Items.Add("Loading...");
             listProcesses.Columns.Add(new ColumnHeader
             {
                 Text = "Process",
                 Name = "col1",
-                Width = 220,
+                Width = 230
             });
             listProcesses.Columns.Add(new ColumnHeader
             {
-                Text = "Downloaded (MB)",
+                Text = "▼ internet",
                 Name = "col2",
-                Width = 120
+                Width = 100,
+                TextAlign = HorizontalAlignment.Right
             });
             listProcesses.Columns.Add(new ColumnHeader
             {
-                Text = "Uploaded (MB)",
+                Text = "▲ internet",
                 Name = "col3",
-                Width = 120
+                Width = 100,
+                TextAlign = HorizontalAlignment.Right
+            });
+            listProcesses.Columns.Add(new ColumnHeader
+            {
+                Text = "▼ local",
+                Name = "col4",
+                Width = 100,
+                TextAlign = HorizontalAlignment.Right
+            });
+            listProcesses.Columns.Add(new ColumnHeader
+            {
+                Text = "▲ local",
+                Name = "col5",
+                Width = 100,
+                TextAlign = HorizontalAlignment.Right
             });
             listProcesses.ListViewItemSorter = _columnSorter;
             listProcesses.ColumnClick += ListProcessesOnColumnClick;
@@ -259,7 +276,7 @@ namespace NetworkMonitorAlerter.WindowsApp
         
                 var uploadFormName = processName + "_u";
                 var downloadFormName = processName + "_d";
-                if (data.TotalUploadInWindow > Configuration.MaxBytesUploadInWindow &&
+                if (data.Remote.TotalUploadInWindow > Configuration.MaxBytesUploadInWindow &&
                     !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Upload) &&
                     !_openForms.Contains(uploadFormName))
                 {
@@ -272,7 +289,7 @@ namespace NetworkMonitorAlerter.WindowsApp
                     k.Activate();
                 }
 
-                if (data.TotalDownloadInWindow > Configuration.MaxBytesDownloadInWindow &&
+                if (data.Remote.TotalDownloadInWindow > Configuration.MaxBytesDownloadInWindow &&
                     !IsApplicationWhitelisted(data.Process, DownloadOrUpload.Download) &&
                     !_openForms.Contains(downloadFormName))
                 {
@@ -287,15 +304,17 @@ namespace NetworkMonitorAlerter.WindowsApp
                 
                 foreach (var logger in _loggers)
                 {
-                    logger.AddBandwidth(processName, data.BandwidthReceived, DownloadOrUpload.Download);
-                    logger.AddBandwidth(processName, data.BandwidthSent, DownloadOrUpload.Upload);
+                    logger.AddBandwidth(processName, data.Remote.BandwidthReceived, DownloadOrUpload.Download);
+                    logger.AddBandwidth(processName, data.Remote.BandwidthSent, DownloadOrUpload.Upload);
                 }
 
                 var liveView = LiveProcessViews.FirstOrDefault(x => x.ProcessName == processName);
                 if (liveView != null)
                 {
-                    liveView.AddValue(data.BandwidthReceived, DownloadOrUpload.Download);
-                    liveView.AddValue(data.BandwidthSent, DownloadOrUpload.Upload);
+                    liveView.AddValue(data.Remote.BandwidthReceived, DownloadOrUpload.Download);
+                    liveView.AddValue(data.Remote.BandwidthSent, DownloadOrUpload.Upload);
+                    liveView.AddValueNetwork(data.Local.BandwidthReceived, DownloadOrUpload.Download);
+                    liveView.AddValueNetwork(data.Local.BandwidthSent, DownloadOrUpload.Upload);
                 }
             }
         }
@@ -303,27 +322,45 @@ namespace NetworkMonitorAlerter.WindowsApp
         private void UpdateProcessList(List<NetworkPerformanceData> performanceData)
         {
             if (!this.Visible)
+            {
+                LiveProcessViews.Clear();
+                listProcesses.Items.Clear();
+                listProcesses.Items.Add("Loading...");
                 return;
+            }
 
             var added = false;
             foreach (var data in performanceData)
             {
-                if (data.BandwidthSent == 0 && data.BandwidthReceived == 0)
+                if (data.Remote.BandwidthSent == 0 && data.Remote.BandwidthReceived == 0 && data.Local.BandwidthSent == 0 && data.Local.BandwidthReceived == 0)
                     continue;
 
                 var currentItem = GetListProcessItem(data.Process.ProcessName);
                 if (currentItem != null)
                 {
-                    currentItem.SubItems[1].Text = StringHelpers.ToMegabytes(data.BytesReceived);
-                    currentItem.SubItems[2].Text = StringHelpers.ToMegabytes(data.BytesSent);
+                    currentItem.SubItems[1].Text = StringHelpers.ToMegabytes(data.Remote.BytesReceived);
+                    currentItem.SubItems[2].Text = StringHelpers.ToMegabytes(data.Remote.BytesSent);
+                    currentItem.SubItems[3].Text = StringHelpers.ToMegabytes(data.Local.BandwidthReceived);
+                    currentItem.SubItems[4].Text = StringHelpers.ToMegabytes(data.Local.BytesSent);
                     continue;
                 }
 
                 added = true;
                 var listItem = new ListViewItem(data.Process.ProcessName);
-                listItem.SubItems.Add(StringHelpers.ToMegabytes(data.BytesReceived));
-                listItem.SubItems.Add(StringHelpers.ToMegabytes(data.BytesSent));
+                listItem.SubItems.Add(StringHelpers.ToMegabytes(data.Remote.BytesReceived));
+                listItem.SubItems.Add(StringHelpers.ToMegabytes(data.Remote.BytesSent));
+                listItem.SubItems.Add(StringHelpers.ToMegabytes(data.Local.BytesReceived));
+                listItem.SubItems.Add(StringHelpers.ToMegabytes(data.Local.BytesSent));
                 listProcesses.Items.Add(listItem);
+            }
+
+            foreach (ListViewItem item in listProcesses.Items)
+            {
+                if (performanceData.All(x =>
+                        !string.Equals(x.Process.ProcessName, item.Text, StringComparison.InvariantCultureIgnoreCase)))
+                {
+                    listProcesses.Items.Remove(item);
+                }
             }
 
             if (added)
@@ -373,7 +410,9 @@ namespace NetworkMonitorAlerter.WindowsApp
             {
                 long downloadStart = 0;
                 long uploadStart = 0;
-                foreach (var data in performanceData.BytesReceivedLog)
+                long downloadStartLocally = 0;
+                long uploadStartLocally = 0;
+                foreach (var data in performanceData.Remote.BytesReceivedLog)
                 {
                     if (downloadStart == 0)
                     {
@@ -384,7 +423,7 @@ namespace NetworkMonitorAlerter.WindowsApp
                     downloadStart = data.Bytes;
                 }
             
-                foreach (var data in performanceData.BytesSentLog)
+                foreach (var data in performanceData.Remote.BytesSentLog)
                 {
                     if (uploadStart == 0)
                     {
@@ -393,6 +432,28 @@ namespace NetworkMonitorAlerter.WindowsApp
                     }
                     form.AddValue(data.Bytes - uploadStart, DownloadOrUpload.Upload);
                     uploadStart = data.Bytes;
+                }
+                
+                foreach (var data in performanceData.Local.BytesReceivedLog)
+                {
+                    if (downloadStartLocally == 0)
+                    {
+                        downloadStartLocally = data.Bytes;
+                        continue;
+                    }
+                    form.AddValueNetwork(data.Bytes - downloadStartLocally, DownloadOrUpload.Download);
+                    downloadStartLocally = data.Bytes;
+                }
+            
+                foreach (var data in performanceData.Local.BytesSentLog)
+                {
+                    if (uploadStartLocally == 0)
+                    {
+                        uploadStartLocally = data.Bytes;
+                        continue;
+                    }
+                    form.AddValueNetwork(data.Bytes - uploadStartLocally, DownloadOrUpload.Upload);
+                    uploadStartLocally = data.Bytes;
                 }
             }
             

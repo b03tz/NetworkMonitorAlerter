@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Diagnostics.Tracing.Parsers;
+using Microsoft.Diagnostics.Tracing.Parsers.Kernel;
 using Microsoft.Diagnostics.Tracing.Session;
 
 namespace NetworkMonitorAlerter.Library
@@ -24,12 +26,16 @@ namespace NetworkMonitorAlerter.Library
         private readonly bool _isContinuous;
         private readonly int _updateProcessInterval;
         private readonly int _maxLogAge;
+        private readonly IPAddress localHostIP4 = IPAddress.Parse("127.0.0.1");
+        private readonly IPAddress localHostIP6 = IPAddress.Parse("::1");
 
         private class Counters
         {
             public Process Process;
             public long Received;
             public long Sent;
+            public long ReceivedLocally;
+            public long SentLocally;
         }
 
         private NetworkMonitor(bool isContinuous, int updateInterval = 30, int maxLogAge = 300)
@@ -142,14 +148,26 @@ namespace NetworkMonitorAlerter.Library
                 {
                     _mEtwSession.EnableKernelProvider(KernelTraceEventParser.Keywords.NetworkTCPIP);
                     _mEtwSession.EnableProvider("Microsoft-Windows-TCPIP");
-                    _mEtwSession.Source.Kernel.TcpIpSend += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
-                    _mEtwSession.Source.Kernel.TcpIpRecv += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
-                    _mEtwSession.Source.Kernel.TcpIpSendIPV6 += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
-                    _mEtwSession.Source.Kernel.TcpIpRecvIPV6 += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
-                    _mEtwSession.Source.Kernel.UdpIpSend += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
-                    _mEtwSession.Source.Kernel.UdpIpRecv += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
-                    _mEtwSession.Source.Kernel.UdpIpSendIPV6 += (data) => LogSentData(GetProcessName(data.ProcessID), data.size);
-                    _mEtwSession.Source.Kernel.UdpIpRecvIPV6 += (data) => LogReceivedData(GetProcessName(data.ProcessID), data.size);
+                    
+                    _mEtwSession.Source.Kernel.TcpIpSend += (data) => 
+                        LogSentData(GetProcessName(data.ProcessID), data.size, IsLocal(data.saddr, data.daddr));
+                    _mEtwSession.Source.Kernel.TcpIpRecv += (data) => 
+                        LogReceivedData(GetProcessName(data.ProcessID), data.size, IsLocal(data.saddr, data.daddr));
+                    _mEtwSession.Source.Kernel.TcpIpSendIPV6 += (data) => 
+                        LogSentData(GetProcessName(data.ProcessID), data.size, IsLocal(data.saddr, data.daddr));
+                    _mEtwSession.Source.Kernel.TcpIpRecvIPV6 += (data) => 
+                        LogReceivedData(GetProcessName(data.ProcessID), data.size, IsLocal(data.saddr, data.daddr));
+                    _mEtwSession.Source.Kernel.UdpIpSend += (data) => 
+                        LogSentData(GetProcessName(data.ProcessID), data.size, IsLocal(data.saddr, data.daddr));
+                    _mEtwSession.Source.Kernel.UdpIpRecv += (data) => 
+                        LogReceivedData(GetProcessName(data.ProcessID), data.size, IsLocal(data.saddr, data.daddr));
+                    _mEtwSession.Source.Kernel.UdpIpSendIPV6 += (data) => 
+                        LogSentData(GetProcessName(data.ProcessID), data.size, IsLocal(data.saddr, data.daddr));
+                    _mEtwSession.Source.Kernel.UdpIpRecvIPV6 += (data) => 
+                        LogReceivedData(GetProcessName(data.ProcessID), data.size, IsLocal(data.saddr, data.daddr));
+
+                    _mEtwSession.Source.Kernel.TcpIpRecv += DebugPacket;
+                    _mEtwSession.Source.Kernel.UdpIpRecv += DebugPacket;
 
                     _mEtwSession.Source.Process();
                 }
@@ -160,23 +178,65 @@ namespace NetworkMonitorAlerter.Library
                 // Probably should log the exception
             }
         }
+
+        private void DebugPacket(UdpIpTraceData obj)
+        {
+            if (obj.size > 10000)
+            {
+                var local = IsLocal(obj.saddr, obj.daddr);
+                if (local)
+                {
+                    
+                }
+            }
+        }
+
+        private void DebugPacket(TcpIpTraceData obj)
+        {
+            if (obj.size > 10000)
+            {
+                var local = IsLocal(obj.saddr, obj.daddr);
+                if (local)
+                {
+                    
+                }
+            }
+        }
+
+        private bool IsLocal(IPAddress src, IPAddress dest)
+        {
+            return (Equals(src, localHostIP4) || Equals(src, localHostIP4)) && (Equals(dest, localHostIP6) || Equals(dest, localHostIP6));
+        }
         
-        private void LogSentData(string processName, int size)
+        private void LogSentData(string processName, int size, bool isLocal)
         {
             lock (_processCounters)
             {
                 if (!_processCounters.ContainsKey(processName)) return;
-                            
+
+                
+                if (isLocal)
+                {
+                    _processCounters[processName].SentLocally += Convert.ToInt64(size);
+                    return;
+                }
+                
                 _processCounters[processName].Sent += Convert.ToInt64(size);
             }
         }
 
-        private void LogReceivedData(string processName, int size)
+        private void LogReceivedData(string processName, int size, bool isLocal)
         {
             lock (_processCounters)
             {
                 if (!_processCounters.ContainsKey(processName)) return;
-                            
+
+                if (isLocal)
+                {
+                    _processCounters[processName].ReceivedLocally += Convert.ToInt64(size);
+                    return;
+                }
+                
                 _processCounters[processName].Received += Convert.ToInt64(size);
             }
         }
@@ -189,15 +249,25 @@ namespace NetworkMonitorAlerter.Library
             {
                 foreach (var counter in _processCounters.Values)
                 {
-                    var receivedDiff = counter.Received - _monitors[GetProcessName(counter.Process)].BytesReceived;
-                    var sentDiff = counter.Sent - _monitors[GetProcessName(counter.Process)].BytesSent;
+                    var receivedDiff = counter.Received - _monitors[GetProcessName(counter.Process)].Remote.BytesReceived;
+                    var sentDiff = counter.Sent - _monitors[GetProcessName(counter.Process)].Remote.BytesSent;
                     
-                    _monitors[GetProcessName(counter.Process)].BytesReceived = counter.Received;
-                    _monitors[GetProcessName(counter.Process)].BytesSent = counter.Sent;
-                    _monitors[GetProcessName(counter.Process)].BandwidthReceived = receivedDiff;
-                    _monitors[GetProcessName(counter.Process)].BandwidthSent = sentDiff;
-                    _monitors[GetProcessName(counter.Process)].BytesReceivedLog.Add((DateTimeOffset.Now, counter.Received));
-                    _monitors[GetProcessName(counter.Process)].BytesSentLog.Add((DateTimeOffset.Now, counter.Sent));
+                    _monitors[GetProcessName(counter.Process)].Remote.BytesReceived = counter.Received;
+                    _monitors[GetProcessName(counter.Process)].Remote.BytesSent = counter.Sent;
+                    _monitors[GetProcessName(counter.Process)].Remote.BandwidthReceived = receivedDiff;
+                    _monitors[GetProcessName(counter.Process)].Remote.BandwidthSent = sentDiff;
+                    _monitors[GetProcessName(counter.Process)].Remote.BytesReceivedLog.Add((DateTimeOffset.Now, counter.Received));
+                    _monitors[GetProcessName(counter.Process)].Remote.BytesSentLog.Add((DateTimeOffset.Now, counter.Sent));
+                    
+                    var receivedDiffLocal = counter.ReceivedLocally - _monitors[GetProcessName(counter.Process)].Local.BytesReceived;
+                    var sentDiffLocal = counter.SentLocally - _monitors[GetProcessName(counter.Process)].Local.BytesSent;
+                    
+                    _monitors[GetProcessName(counter.Process)].Local.BytesReceived = counter.ReceivedLocally;
+                    _monitors[GetProcessName(counter.Process)].Local.BytesSent = counter.SentLocally;
+                    _monitors[GetProcessName(counter.Process)].Local.BandwidthReceived = receivedDiffLocal;
+                    _monitors[GetProcessName(counter.Process)].Local.BandwidthSent = sentDiffLocal;
+                    _monitors[GetProcessName(counter.Process)].Local.BytesReceivedLog.Add((DateTimeOffset.Now, counter.ReceivedLocally));
+                    _monitors[GetProcessName(counter.Process)].Local.BytesSentLog.Add((DateTimeOffset.Now, counter.SentLocally));
                 }
             }
 
@@ -224,8 +294,10 @@ namespace NetworkMonitorAlerter.Library
             {
                 foreach (var monitor in _monitors.Values)
                 {
-                    monitor.BytesReceivedLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
-                    monitor.BytesSentLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
+                    monitor.Remote.BytesReceivedLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
+                    monitor.Remote.BytesSentLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
+                    monitor.Local.BytesReceivedLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
+                    monitor.Local.BytesSentLog.RemoveAll(x => (DateTimeOffset.Now - x.Time).TotalSeconds > _maxLogAge);
                 }
             }
         }
@@ -272,6 +344,8 @@ namespace NetworkMonitorAlerter.Library
                 {
                     counter.Sent = 0;
                     counter.Received = 0;
+                    counter.ReceivedLocally = 0;
+                    counter.SentLocally = 0;
                 }
             }
 
@@ -287,6 +361,12 @@ namespace NetworkMonitorAlerter.Library
     public sealed class NetworkPerformanceData
     {
         public Process Process { get; set; }
+        public TrafficData Local { get; set; } = new TrafficData();
+        public TrafficData Remote { get; set; } = new TrafficData();
+    }
+
+    public sealed class TrafficData
+    {
         public long BytesReceived { get; set; }
         public long BytesSent { get; set; }
         public long BandwidthReceived { get; set; }
